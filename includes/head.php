@@ -1,18 +1,29 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $title ?? 'Mi Sitio' ?></title>
+    <title><?= e($title ?? env('APP_NAME', 'Tanuki App')) ?></title>
+    <link rel="stylesheet" href="<?= e(url('/assets/css/app.css')) ?>">
 </head>
 <body>
     <header>
-        <h1>Mi Sitio Web</h1>
+        <a href="/" class="brand">🦝 <span>Tanuki</span></a>
         <nav>
-            <a href="/">Inicio</a>
-            <a href="/about">Acerca de</a>
+            <?php foreach (require __DIR__ . '/../config/nav.php' as $item): ?>
+                <a href="<?= e($item['href']) ?>"
+                <?= (($item['match'] === '/') ? ($uri === '/') : str_starts_with($uri, $item['match'])) ? 'class="active"' : '' ?>>
+                    <?= e($item['label']) ?>
+                </a>
+            <?php endforeach; ?>
         </nav>
     </header>
     <main>
-        <?php echo $content ?? ''; ?>
-    </main>
+        <?php
+        foreach (['success', 'error', 'warning'] as $type) {
+            $msg = flash($type);
+            if ($msg): ?>
+                <div class="flash <?= $type ?>"><?= e($msg) ?></div>
+            <?php endif;
+        }
+        ?>

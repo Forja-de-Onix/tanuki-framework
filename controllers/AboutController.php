@@ -1,9 +1,12 @@
 <?php
 
-class AboutController {
-    public function show() {
-        $title = "Acerca de";
-        $description = "Somos una empresa dedicada a la innovación.";
-        view('about', compact('title', 'description'));
+class AboutController extends Controller
+{
+    public function index(): void
+    {
+        $this->view('about/index', [
+            'title'       => 'About — ' . env('APP_NAME', 'Tanuki App'),
+            'description' => 'Tanuki is a lightweight, minimalist PHP framework with MVC architecture.',
+        ]);
     }
 }

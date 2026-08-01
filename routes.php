@@ -1,20 +1,32 @@
 <?php
 
-$routes = [
-    '/'        => 'HomeController@index',
-    '/about'   => 'AboutController@show',
+/**
+ * Tanuki Framework — Route Definitions
+ *
+ * Format: 'METHOD /path' => 'ControllerClass@method'
+ *
+ * Route parameters: use {name} to capture dynamic segments.
+ *   Example: 'GET /users/{id}' => 'UserController@show'
+ *   The captured value is passed as the first argument to the method: show($id)
+ *
+ * Method override support for HTML forms:
+ *   Add <input type="hidden" name="_method" value="DELETE"> in the form.
+ *   The framework detects it and routes correctly.
+ */
+
+return [
+
+    // ── Main pages ─────────────────────────────────────────────────────────
+    'GET /'      => 'HomeController@index',
+    'GET /about' => 'AboutController@index',
+
+    // ── TODO List — full CRUD ──────────────────────────────────────────────
+    'GET /todo'              => 'TodoController@index',   // List
+    'GET /todo/create'       => 'TodoController@create',  // Creation form
+    'POST /todo'             => 'TodoController@store',   // Save new
+    'GET /todo/{id}'         => 'TodoController@show',    // View detail
+    'GET /todo/{id}/edit'    => 'TodoController@edit',    // Edit form
+    'PUT /todo/{id}'         => 'TodoController@update',  // Save changes
+    'DELETE /todo/{id}'      => 'TodoController@destroy', // Delete
+
 ];
-
-$request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
-if (array_key_exists($request_uri, $routes)) {
-    list($controller, $method) = explode('@', $routes[$request_uri]);
-    
-    require_once __DIR__ . "/controllers/$controller.php";
-
-    $controllerInstance = new $controller();
-    echo $controllerInstance->$method();
-} else {
-    http_response_code(404);
-    echo "404 - Página no encontrada";
-}

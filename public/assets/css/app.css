@@ -1,0 +1,483 @@
+/* Tanuki Framework — Base stylesheet */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --border: #2a2a4a;
+    --accent: #7c6af5;
+    --accent-h: #9b8fff;
+    --text: #e2e2f0;
+    --text-muted: #8888aa;
+    --danger: #e94560;
+    --success: #2ecc71;
+    --warning: #f0a500;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────── */
+header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+header .brand {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+}
+
+header .brand span {
+    color: var(--text);
+}
+
+nav {
+    display: flex;
+    gap: 0.25rem;
+}
+
+nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: background 0.15s, color 0.15s;
+}
+
+nav a:hover {
+    background: var(--border);
+    color: var(--text);
+}
+
+nav a.active {
+    background: rgba(124, 106, 245, 0.15);
+    color: var(--accent-h);
+}
+
+/* ── Main ────────────────────────────────────── */
+main {
+    flex: 1;
+    padding: 2rem;
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ── Flash messages ──────────────────────────── */
+.flash {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.flash.success {
+    background: rgba(46, 204, 113, 0.12);
+    border: 1px solid var(--success);
+    color: var(--success);
+}
+
+.flash.error {
+    background: rgba(233, 69, 96, 0.12);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+}
+
+.flash.warning {
+    background: rgba(240, 165, 0, 0.12);
+    border: 1px solid var(--warning);
+    color: var(--warning);
+}
+
+/* ── Cards ───────────────────────────────────── */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+/* ── Forms ───────────────────────────────────── */
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    color: var(--text);
+    font-size: 0.95rem;
+    transition: border-color 0.15s;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* ── Buttons ─────────────────────────────────── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    opacity: 0.88;
+}
+
+.btn-secondary {
+    background: var(--border);
+    color: var(--text);
+}
+
+.btn-secondary:hover {
+    background: #3a3a5a;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    opacity: 0.85;
+}
+
+.btn-sm {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.82rem;
+}
+
+/* ── Table ───────────────────────────────────── */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th {
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+}
+
+td {
+    padding: 0.7rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* ── Misc ────────────────────────────────────── */
+h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+p {
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+.actions {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: rgba(46, 204, 113, 0.15);
+    color: var(--success);
+}
+
+.badge-warning {
+    background: rgba(240, 165, 0, 0.15);
+    color: var(--warning);
+}
+
+/* ── Footer ──────────────────────────────────── */
+.site-footer {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+}
+
+/* ── Flash messages: fade-out animation ───────── */
+.flash.fade-out {
+    animation: flashFadeOut 0.6s ease forwards;
+}
+
+@keyframes flashFadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+/* ── Error pages ─────────────────────────────── */
+.error-page {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.error-page .icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+}
+
+.error-page h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+
+.error-page p {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    color: var(--text-muted);
+}
+
+.error-page.error-404 h1 {
+    color: var(--danger);
+}
+
+.error-page.error-500 h1 {
+    color: var(--warning);
+}
+
+.error-page.error-503 h1 {
+    color: var(--warning);
+}
+
+/* ── View layout helpers ─────────────────────── */
+.view-container {
+    max-width: 600px;
+}
+
+.view-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.view-header h1 {
+    margin: 0;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.quick-actions .grow {
+    flex: 1;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.25rem 0;
+}
+
+.meta-row {
+    display: flex;
+    gap: 2rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* ── Danger zone ─────────────────────────────── */
+.danger-zone {
+    border-color: rgba(233, 69, 96, 0.3);
+    margin-top: 1rem;
+}
+
+.danger-zone h2 {
+    color: var(--danger);
+    font-size: 1rem;
+}
+
+.danger-zone p {
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+/* ── List page ───────────────────────────────── */
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.list-header h1 {
+    margin-bottom: 0.25rem;
+}
+
+.list-header p {
+    font-size: 0.85rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+}
+
+.empty-state .icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.card-flush {
+    padding: 0;
+    overflow: hidden;
+}
+
+.title-link {
+    color: var(--text);
+    text-decoration: none;
+}
+
+.title-link.is-completed {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.truncate {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+/* ── Detail page ─────────────────────────────── */
+.detail-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.badge-lg {
+    font-size: 0.85rem;
+}
+
+.description-empty {
+    font-style: italic;
+}
