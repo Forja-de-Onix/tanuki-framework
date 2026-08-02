@@ -13,7 +13,7 @@
             <?php foreach (require __DIR__ . '/../config/nav.php' as $item): ?>
                 <a href="<?= e($item['href']) ?>"
                 <?= (($item['match'] === '/') ? ($uri === '/') : str_starts_with($uri, $item['match'])) ? 'class="active"' : '' ?>>
-                    <?= e($item['label']) ?>
+                    <?= e(t($item['label'])) ?>
                 </a>
             <?php endforeach; ?>
         </nav>

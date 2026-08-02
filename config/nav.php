@@ -1,15 +1,14 @@
 <?php
 
 /**
- * Tanuki Framework — Rutas del Navbar
+ * Tanuki Framework — Navigation menu entries
  *
- * Define las rutas que se mostrarán en el menú de navegación.
- *
- * @return array
+ * 'label' is a translation key (see lang/en.json, lang/es.json),
+ * resolved through t() at render time — not a literal string.
  */
 
 return [
-    ['label' => 'Inicio',    'href' => '/',      'match' => '/'],
-    ['label' => 'Acerca de', 'href' => '/about', 'match' => '/about'],
-    ['label' => 'TODO List', 'href' => '/todo', 'match' => '/todo'],
+    ['label' => 'nav.home',  'href' => '/',      'match' => '/'],
+    ['label' => 'nav.about', 'href' => '/about', 'match' => '/about'],
+    ['label' => 'nav.todo',  'href' => '/todo',  'match' => '/todo'],
 ];

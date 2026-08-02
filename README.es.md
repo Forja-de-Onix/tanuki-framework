@@ -26,6 +26,88 @@ Framework PHP ligero con arquitectura MVC limpia, acceso a base de datos y cero 
 
 ---
 
+## Prerrequisitos: instalar PHP y una base de datos desde cero (Ubuntu)
+
+Esta sección asume una máquina Ubuntu limpia, sin nada instalado. Si ya tienes PHP y tu base de datos configurados, salta directamente a [Instalación](#instalación).
+
+### 1. PHP
+
+```bash
+sudo apt update
+sudo apt install php8.1 php8.1-cli php8.1-xml php8.1-mbstring php8.1-curl php8.1-zip unzip
+```
+
+Añade el driver de base de datos según el motor que vayas a usar (ver paso 2):
+
+```bash
+sudo apt install php8.1-mysql    # para MySQL/MariaDB
+# y/o
+sudo apt install php8.1-pgsql    # para PostgreSQL
+```
+
+Verifica:
+
+```bash
+php -v
+php -m | grep -iE "pdo_mysql|pdo_pgsql|xml|mbstring"
+```
+
+### 2. Base de datos — elige MySQL/MariaDB, PostgreSQL, o ambos
+
+Tanuki soporta los dos mediante `DB_DRIVER` en `.env` — solo necesitas instalar el que realmente vayas a usar.
+
+#### Opción A — MySQL/MariaDB
+
+```bash
+sudo apt install mariadb-server
+sudo systemctl enable --now mariadb
+sudo mysql_secure_installation
+```
+
+`mysql_secure_installation` te guía para poner contraseña de root, eliminar usuarios anónimos y desactivar el login remoto de root — responde "sí" a todo para una instalación local normal.
+
+Crea la base de datos de la app y un usuario dedicado (nunca uses `root` en `.env`):
+
+```bash
+sudo mysql -u root -p
+```
+
+```sql
+CREATE DATABASE mi_base CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'mi_usuario_app'@'localhost' IDENTIFIED BY 'una_contraseña_fuerte';
+GRANT ALL PRIVILEGES ON mi_base.* TO 'mi_usuario_app'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+Estos valores van directamente al `.env` como `DB_NAME`, `DB_USER`, `DB_PASS` — ver [Instalación](#instalación).
+
+#### Opción B — PostgreSQL
+
+```bash
+sudo apt install postgresql postgresql-contrib
+sudo systemctl enable --now postgresql
+```
+
+Crea la base de datos de la app y un usuario dedicado:
+
+```bash
+sudo -u postgres psql
+```
+
+```sql
+CREATE DATABASE mi_base;
+CREATE USER mi_usuario_app WITH ENCRYPTED PASSWORD 'una_contraseña_fuerte';
+GRANT ALL PRIVILEGES ON DATABASE mi_base TO mi_usuario_app;
+\q
+```
+
+Pon `DB_DRIVER=pgsql` en `.env` si usas esta opción — ver [Instalación](#instalación).
+
+### 3. El resto se instala sobre la marcha
+
+Composer, PHPUnit, Redis, MongoDB, Docker y Xdebug tienen cada uno sus propios pasos de instalación en sus secciones correspondientes más abajo ([Testing](#testing), [Conexiones opcionales](#conexiones-opcionales-redis-y-mongodb), [Desarrollo local con Xdebug](#desarrollo-local-con-xdebug)) — instálalos solo cuando realmente los necesites.
+
 ## Instalación
 
 ```bash
@@ -356,6 +438,10 @@ Todos los estilos compartidos viven en `public/assets/css/app.css`, cargado una 
 | `session_ensure()` | Inicia la sesión si no está ya iniciada |
 | `flash($key)` | Lee y elimina un mensaje flash |
 | `old($key, $default)` | Recupera un valor de input anterior (para re-poblar formularios) |
+| `format_date($datetime)` | Formatea una fecha según `APP_LOCALE` (`en` → m/d/Y, `es` → d/m/Y) |
+| `t($clave, $replace = [])` | Traduce una clave en notación de puntos (ver [Internacionalización](#internacionalización)) |
+| `format_date($datetime)` | Formatea una fecha según `APP_LOCALE` (`en` → m/d/Y, `es` → d/m/Y) |
+
 
 ---
 
@@ -587,3 +673,418 @@ En `public/assets/`. Se sirven directamente por el servidor web al estar dentro 
 
 **¿Habrá un sistema de idiomas/i18n?**
 Sí, está planeado: una variable `APP_LOCALE` (`en`/`es`) más archivos de traducción JSON simples y expandibles que las vistas puedan consumir a través de un helper.
+
+## Internacionalización (i18n)
+
+Tanuki incluye un sistema de traducciones mínimo basado en archivos: un helper global `t()` más un diccionario JSON por idioma en `lang/`.
+
+```
+lang/
+├── en.json
+└── es.json
+```
+
+### Cómo funciona
+
+```php
+t('nav.home')                              // → "Inicio" (o "Home" si APP_LOCALE=en)
+t('todo.count_summary', ['total' => 5])    // → sustituye ":total" dentro del string
+```
+
+- El idioma activo se lee de `APP_LOCALE` en `.env` (`en` o `es` por defecto).
+- Las claves usan notación de puntos para llegar a secciones anidadas del JSON (`errors.404_title` → `{"errors": {"404_title": "..."}}`).
+- Si una clave falta en el idioma activo, `t()` cae al inglés; si tampoco existe ahí, devuelve la clave tal cual — así una traducción faltante se ve en la interfaz en vez de romper la página.
+- Los diccionarios se cargan y cachean una vez por petición (`load_translations()`), así que llamar a `t()` muchas veces en la misma página no tiene coste extra.
+- Los placeholders usan dos puntos delante (`:nombre`) y se sustituyen con el segundo argumento: `t('clave', ['nombre' => 'valor'])`.
+
+### Añadir un nuevo idioma
+
+No hace falta tocar código — solo añade un nuevo archivo de diccionario siguiendo exactamente la misma estructura de claves que `lang/en.json`:
+
+```bash
+cp lang/en.json lang/fr.json
+# traduce los valores en lang/fr.json
+```
+
+Luego pon `APP_LOCALE=fr` en `.env`. Cualquier clave que dejes sin traducir (o que olvides añadir) cae automáticamente al inglés en vez de romper nada.
+
+### Selector de idiomas
+
+La versión base (`tanuki_base`) no tiene interfaz, así que no hay nada donde integrar un selector por defecto — `APP_LOCALE` es una configuración fija por despliegue, que se cambia editando `.env`. Un selector de idioma en tiempo real (que el visitante elija su idioma desde el navegador) está pensado para versiones del framework que sí incluyen interfaz real, como **Tanuki Pro**.
+
+Si tu proyecto necesita un selector antes de eso, aquí tienes el patrón a seguir — no viene conectado por defecto, pero encaja limpiamente sobre lo que ya hay:
+
+**1. Guarda el idioma elegido en sesión, no solo en `.env`.**
+
+Añade un pequeño helper a `utils.php`:
+
+```php
+/**
+ * Devuelve el idioma activo: override de sesión si existe, si no APP_LOCALE.
+ */
+function current_locale(): string
+{
+    session_ensure();
+    return $_SESSION['locale'] ?? env('APP_LOCALE', 'en');
+}
+```
+
+Y actualiza la primera línea de `t()` para que use esto en vez de leer `env()` directamente:
+
+```php
+$locale = current_locale();
+```
+
+**2. Añade una ruta + acción de controlador para cambiar de idioma.**
+
+```php
+// routes.php
+'GET /locale/{lang}' => 'LocaleController@switch',
+```
+
+```php
+<?php
+
+class LocaleController extends Controller
+{
+    private const SUPPORTED = ['en', 'es'];
+
+    public function switch(string $lang): void
+    {
+        if (in_array($lang, self::SUPPORTED, true)) {
+            session_ensure();
+            $_SESSION['locale'] = $lang;
+        }
+        $this->redirect($this->request->post('return_to') ?? '/');
+    }
+}
+```
+
+**3. Añade los enlaces del selector en `includes/head.php`.**
+
+```php
+<a href="/locale/en">EN</a> | <a href="/locale/es">ES</a>
+```
+
+**4. (Opcional, avanzado) Idioma con prefijo en la URL en vez de sesión.**
+
+Algunos proyectos prefieren que el idioma sea visible en la propia URL (`/en/todo`, `/es/todo`) en vez de guardarse en sesión — útil para SEO, ya que los buscadores indexan cada idioma como una URL separada. Esto requiere un pequeño cambio en el router en vez de un controlador nuevo:
+
+- Prefija cada ruta de `routes.php` con un segmento `{lang}`, o genera el array de rutas de forma programática recorriendo los idiomas soportados y anteponiendo `/{lang}` a cada path.
+- En `App::dispatch()`, antes de comparar contra `self::$routes`, quita el segmento inicial `/en` o `/es` de `$uri`, valídalo contra una lista de idiomas soportados, y guárdalo (por ejemplo en una propiedad estática o en sesión) antes de seguir con el resto de la URI como hasta ahora.
+- Cada enlace interno (`url()`, `redirect()`, hrefs en vistas) necesitará entonces el prefijo del idioma actual automáticamente — lo más limpio es hacer que `url()` anteponga `/{locale}` cuando el enrutado con prefijo esté activado, controlado por un nuevo flag en `.env` (por ejemplo `APP_LOCALE_IN_URL=true`).
+
+Esto es una decisión de arquitectura deliberada (con prefijo en URL vs basado en sesión), no una funcionalidad "enchufa y listo", ya que cambia cómo se genera cada ruta y cada enlace interno — planéalo antes de conectarlo a un proyecto con muchas rutas ya existentes.
+
+## Testing
+
+Esta sección asume una máquina Ubuntu limpia, sin nada instalado todavía. Si ya tienes PHP y Composer, salta directamente a [Instalar PHPUnit](#instalar-phpunit).
+
+### Instalar PHP desde cero (Ubuntu)
+
+```bash
+sudo apt update
+sudo apt install php8.1 php8.1-cli php8.1-mysql php8.1-xml php8.1-mbstring php8.1-curl php8.1-zip unzip
+```
+
+Para qué sirve cada paquete:
+
+| Paquete | Por qué hace falta |
+|---|---|
+| `php8.1` / `php8.1-cli` | El propio runtime de PHP y el binario de línea de comandos |
+| `php8.1-mysql` | Driver PDO para MySQL/MariaDB (`Database::connect()`) |
+| `php8.1-xml` | Provee `dom` y `xmlwriter`, necesarios para la generación de reportes de PHPUnit |
+| `php8.1-mbstring` | Manejo de strings multibyte, necesario para Composer y la mayoría de paquetes |
+| `php8.1-curl` | Lo usa Composer para descargar paquetes |
+| `php8.1-zip` / `unzip` | Composer los necesita para descomprimir los paquetes descargados |
+
+Verifica:
+
+```bash
+php -v
+php -m | grep -iE "pdo_mysql|dom|xmlwriter|mbstring|curl|zip"
+```
+
+Si usas PostgreSQL en vez de MySQL, instala `php8.1-pgsql` en lugar de (o junto a) `php8.1-mysql`.
+
+### Instalar Composer
+
+```bash
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+composer --version
+```
+
+### Instalar PHPUnit
+
+PHP 8.1 requiere PHPUnit 10.x — las versiones mayores más recientes (11+) dejan de soportarlo. Inicializa `composer.json` primero si el proyecto todavía no tiene uno:
+
+```bash
+composer init --name="tu-usuario/tanuki-base" --type=project --no-interaction
+composer require --dev "phpunit/phpunit:^10.5"
+```
+
+Verifica:
+
+```bash
+./vendor/bin/phpunit --version
+```
+
+### Configuración de tests
+
+**`phpunit.xml`** (raíz del proyecto):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>core</directory>
+            <directory>models</directory>
+            <directory>controllers</directory>
+        </include>
+    </source>
+</phpunit>
+```
+
+**`tests/bootstrap.php`** (archivo nuevo):
+
+```php
+<?php
+
+/**
+ * Tanuki Framework — Bootstrap de PHPUnit
+ *
+ * Carga el autoloader de Composer (para PHPUnit mismo) más cada clase
+ * del core que necesita la suite de tests, ya que el autoloader propio
+ * de Tanuki solo se activa cuando corre App::run() — los tests cargan
+ * las clases directamente en su lugar.
+ */
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../utils.php';
+require_once __DIR__ . '/../core/Model.php';
+require_once __DIR__ . '/../core/Request.php';
+require_once __DIR__ . '/../core/Controller.php';
+
+// Usa un .env.testing dedicado si existe, si no cae al .env normal
+$envFile = file_exists(__DIR__ . '/../.env.testing')
+    ? __DIR__ . '/../.env.testing'
+    : __DIR__ . '/../.env';
+
+if (file_exists($envFile)) {
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#' || !str_contains($line, '=')) {
+            continue;
+        }
+        [$key, $value] = explode('=', $line, 2);
+        $_ENV[trim($key)] = trim($value, " \t\"'");
+    }
+}
+```
+
+**`.env.testing`** (archivo nuevo — evita que los tests toquen tu base de datos real):
+
+```ini
+APP_NAME="Tanuki Test"
+APP_ENV=testing
+APP_DEBUG=true
+APP_URL=http://localhost
+APP_LOCALE=en
+
+DB_DRIVER=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=tanuki_test
+DB_USER=tu_usuario_test
+DB_PASS=tu_password_test
+DB_CHARSET=utf8mb4
+```
+
+Crea la base de datos de test y la tabla a la que apunta:
+
+```sql
+CREATE DATABASE IF NOT EXISTS tanuki_test;
+USE tanuki_test;
+
+CREATE TABLE todo (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    title       VARCHAR(255) NOT NULL,
+    description TEXT,
+    completed   TINYINT(1)  DEFAULT 0,
+    created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+**Actualiza `.gitignore`** para mantener `.env.testing` fuera del control de versiones (sigue siendo un archivo de credenciales, aunque apunte a una base de datos desechable):
+
+```
+.env
+.env.testing
+vendor/
+```
+
+### Escribir tests para el CRUD de TODO
+
+**`tests/Unit/HelpersTest.php`** (archivo nuevo — no necesita base de datos):
+
+```php
+<?php
+
+use PHPUnit\Framework\TestCase;
+
+require_once __DIR__ . '/../../config/database.php';
+
+final class HelpersTest extends TestCase
+{
+    public function testEscapesHtmlSpecialCharacters(): void
+    {
+        $this->assertSame('&lt;script&gt;', e('<script>'));
+    }
+
+    public function testEscapeReturnsEmptyStringForNull(): void
+    {
+        $this->assertSame('', e(null));
+    }
+
+    public function testEnvReturnsDefaultWhenMissing(): void
+    {
+        $this->assertSame('fallback', env('SOME_UNDEFINED_KEY', 'fallback'));
+    }
+
+    public function testEnvReturnsRealValueOfZero(): void
+    {
+        // Test de regresión: un valor falsy-pero-real como "0" no debe
+        // tratarse como ausente (env() usaba antes el operador Elvis).
+        $_ENV['ZERO_TEST'] = '0';
+        $this->assertSame('0', env('ZERO_TEST', 'should-not-see-this'));
+        unset($_ENV['ZERO_TEST']);
+    }
+
+    public function testTranslationFallsBackToEnglishWhenKeyMissingInLocale(): void
+    {
+        $_ENV['APP_LOCALE'] = 'es';
+        $this->assertNotSame('nav.home', t('nav.home'));
+    }
+
+    public function testTranslationReturnsKeyWhenMissingEverywhere(): void
+    {
+        $this->assertSame('this.key.does.not.exist', t('this.key.does.not.exist'));
+    }
+
+    public function testTranslationReplacesPlaceholders(): void
+    {
+        $_ENV['APP_LOCALE'] = 'en';
+        $result = t('todo.count_summary', ['total' => 5, 'pending' => 2, 'completed' => 3]);
+        $this->assertStringContainsString('5 tasks', $result);
+    }
+}
+```
+
+**`tests/Feature/TodoModelTest.php`** (archivo nuevo — usa la base de datos `tanuki_test`):
+
+```php
+<?php
+
+use PHPUnit\Framework\TestCase;
+
+require_once __DIR__ . '/../../models/TodoModel.php';
+
+final class TodoModelTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        Database::reset();
+        Database::connect()->exec('DELETE FROM todo');
+    }
+
+    public function testCreateAndFind(): void
+    {
+        $id = TodoModel::create([
+            'title'       => 'Tarea de prueba',
+            'description' => 'Creada desde PHPUnit',
+            'completed'   => 0,
+        ]);
+
+        $this->assertIsInt($id);
+
+        $todo = TodoModel::find($id);
+        $this->assertNotNull($todo);
+        $this->assertSame('Tarea de prueba', $todo['title']);
+        $this->assertSame('0', (string) $todo['completed']);
+    }
+
+    public function testAllOrderedPutsPendingFirst(): void
+    {
+        TodoModel::create(['title' => 'Completada', 'completed' => 1]);
+        TodoModel::create(['title' => 'Pendiente',  'completed' => 0]);
+
+        $ordered = TodoModel::allOrdered();
+
+        $this->assertSame('Pendiente', $ordered[0]['title']);
+    }
+
+    public function testUpdateChangesFields(): void
+    {
+        $id = TodoModel::create(['title' => 'Original', 'completed' => 0]);
+
+        $ok = TodoModel::update($id, ['title' => 'Actualizada', 'completed' => 1]);
+
+        $this->assertTrue($ok);
+        $todo = TodoModel::find($id);
+        $this->assertSame('Actualizada', $todo['title']);
+        $this->assertSame('1', (string) $todo['completed']);
+    }
+
+    public function testDeleteRemovesRecord(): void
+    {
+        $id = TodoModel::create(['title' => 'Para eliminar', 'completed' => 0]);
+
+        $ok = TodoModel::delete($id);
+
+        $this->assertTrue($ok);
+        $this->assertNull(TodoModel::find($id));
+    }
+
+    public function testInvalidColumnNameIsRejected(): void
+    {
+        // Test de regresión del fix de inyección SQL vía nombre de columna en Model.php
+        $this->expectException(\InvalidArgumentException::class);
+        TodoModel::where('title; DROP TABLE todo;--', 'x');
+    }
+}
+```
+
+### Ejecutar los tests
+
+```bash
+# Todo
+./vendor/bin/phpunit
+
+# Solo Unit (no requiere base de datos)
+./vendor/bin/phpunit --testsuite Unit
+
+# Solo Feature (requiere que tanuki_test exista y sea accesible)
+./vendor/bin/phpunit --testsuite Feature
+
+# Un archivo concreto
+./vendor/bin/phpunit tests/Feature/TodoModelTest.php
+```
+
+### Notas sobre esta configuración de tests
+
+- **Unit vs Feature** están separados a propósito: los Unit nunca tocan base de datos, así que pueden correr en cualquier entorno (incluido CI sin MySQL configurado); los Feature ejecutan queries reales contra `tanuki_test`.
+- `setUp()` vacía la tabla `todo` antes de cada test para aislarlos. Según crezca la suite, valdría la pena migrar a `beginTransaction()` / `rollBack()` alrededor de cada test — más rápido, y elimina cualquier dependencia del orden de ejecución.
+- `testInvalidColumnNameIsRejected` y `testEnvReturnsRealValueOfZero` son tests de regresión atados directamente a bugs reales encontrados y corregidos durante el desarrollo — mantén este patrón: cada vez que arregles un bug sutil, añade un test que lo hubiera detectado.

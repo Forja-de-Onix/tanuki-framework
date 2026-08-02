@@ -1,9 +1,9 @@
 <?php
 
 /**
- * TodoController — CRUD completo de tareas
+ * TodoController — Full CRUD for tasks
  *
- * Rutas asociadas (ver routes.php):
+ * Associated routes (see routes.php):
  *   GET    /todo              → index()
  *   GET    /todo/create       → create()
  *   POST   /todo              → store()
@@ -16,14 +16,14 @@ class TodoController extends Controller
 {
     // ── GET /todo ────────────────────────────────────────────────────────────
 
-    /** Listado de todos los todo */
+    /** List of all todos */
     public function index(): void
     {
-        $todo = Todo::allOrdered();
+        $todo = TodoModel::allOrdered();
 
         $this->view('todo/index', [
-            'title' => 'TODO List — ' . env('APP_NAME', 'Tanuki App'),
-            'todo' => $todo,
+            'title'     => t('todo.list_title') . ' — ' . env('APP_NAME', 'Tanuki App'),
+            'todo'      => $todo,
             'total'     => count($todo),
             'pending'   => count(array_filter($todo, fn($t) => !$t['completed'])),
             'completed' => count(array_filter($todo, fn($t) =>  $t['completed'])),
@@ -32,49 +32,49 @@ class TodoController extends Controller
 
     // ── GET /todo/create ─────────────────────────────────────────────────────
 
-    /** Formulario para crear un nuevo todo */
+    /** Form to create a new todo */
     public function create(): void
     {
         $this->view('todo/create', [
-            'title' => 'Nueva Tarea — ' . env('APP_NAME', 'Tanuki App'),
+            'title' => t('todo.new_task_title') . ' — ' . env('APP_NAME', 'Tanuki App'),
         ]);
     }
 
     // ── POST /todo ───────────────────────────────────────────────────────────
 
-    /** Guarda un nuevo todo en la BD */
+    /** Saves a new todo to the DB */
     public function store(): void
     {
         $title       = $this->request->post('title');
         $description = $this->request->post('description', '');
 
-        // Validación básica
+        // Basic validation
         if (empty($title)) {
-            $this->flash('error', 'El título es obligatorio.');
+            $this->flash('error', t('todo.flash_title_required'));
             $this->redirect('/todo/create');
         }
 
-        $id = Todo::create([
+        $id = TodoModel::create([
             'title'       => $title,
             'description' => $description,
             'completed'   => 0,
         ]);
 
         if ($id) {
-            $this->flash('success', '¡Tarea creada correctamente!');
+            $this->flash('success', t('todo.flash_created'));
             $this->redirect('/todo');
         } else {
-            $this->flash('error', 'No se pudo crear la tarea. Inténtalo de nuevo.');
+            $this->flash('error', t('todo.flash_create_failed'));
             $this->redirect('/todo/create');
         }
     }
 
     // ── GET /todo/{id} ───────────────────────────────────────────────────────
 
-    /** Detalle de un todo */
+    /** Todo detail */
     public function show(string $id): void
     {
-        $todo = Todo::find((int) $id);
+        $todo = TodoModel::find((int) $id);
 
         if (!$todo) {
             $this->abort404();
@@ -88,27 +88,27 @@ class TodoController extends Controller
 
     // ── GET /todo/{id}/edit ──────────────────────────────────────────────────
 
-    /** Formulario de edición */
+    /** Edit form */
     public function edit(string $id): void
     {
-        $todo = Todo::find((int) $id);
+        $todo = TodoModel::find((int) $id);
 
         if (!$todo) {
             $this->abort404();
         }
 
         $this->view('todo/edit', [
-            'title' => 'Editar Tarea — ' . env('APP_NAME', 'Tanuki App'),
+            'title' => t('todo.edit_task_title') . ' — ' . env('APP_NAME', 'Tanuki App'),
             'todo'  => $todo,
         ]);
     }
 
     // ── PUT /todo/{id} ───────────────────────────────────────────────────────
 
-    /** Actualiza un todo existente */
+    /** Updates an existing todo */
     public function update(string $id): void
     {
-        $todo = Todo::find((int) $id);
+        $todo = TodoModel::find((int) $id);
 
         if (!$todo) {
             $this->abort404();
@@ -119,20 +119,20 @@ class TodoController extends Controller
         $completed   = $this->request->post('completed') === '1' ? 1 : 0;
 
         if (empty($title)) {
-            $this->flash('error', 'El título es obligatorio.');
+            $this->flash('error', t('todo.flash_title_required'));
             $this->redirect("/todo/$id/edit");
         }
 
-        $ok = Todo::update((int) $id, [
+        $ok = TodoModel::update((int) $id, [
             'title'       => $title,
             'description' => $description,
             'completed'   => $completed,
         ]);
 
         if ($ok) {
-            $this->flash('success', '¡Tarea actualizada correctamente!');
+            $this->flash('success', t('todo.flash_updated'));
         } else {
-            $this->flash('error', 'No se pudo actualizar la tarea.');
+            $this->flash('error', t('todo.flash_update_failed'));
         }
 
         $this->redirect('/todo');
@@ -140,21 +140,21 @@ class TodoController extends Controller
 
     // ── DELETE /todo/{id} ────────────────────────────────────────────────────
 
-    /** Elimina un todo */
+    /** Deletes a todo */
     public function destroy(string $id): void
     {
-        $todo = Todo::find((int) $id);
+        $todo = TodoModel::find((int) $id);
 
         if (!$todo) {
             $this->abort404();
         }
 
-        $ok = Todo::delete((int) $id);
+        $ok = TodoModel::delete((int) $id);
 
         if ($ok) {
-            $this->flash('success', 'Tarea eliminada.');
+            $this->flash('success', t('todo.flash_deleted'));
         } else {
-            $this->flash('error', 'No se pudo eliminar la tarea.');
+            $this->flash('error', t('todo.flash_delete_failed'));
         }
 
         $this->redirect('/todo');

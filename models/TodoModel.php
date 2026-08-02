@@ -18,7 +18,7 @@
  * );
  * ─────────────────────────────────────────────
  */
-class Todo extends Model
+class TodoModel extends Model
 {
     protected static string $table = 'todo';
     protected static bool $timestamps = true;

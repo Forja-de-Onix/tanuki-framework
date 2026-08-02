@@ -172,23 +172,75 @@ function locale(): string
 }
 
 /**
- * Formats a date/datetime string according to the active locale.
- * en → m/d/Y H:i   (US format)
- * es → d/m/Y H:i   (day/month first, Spanish convention)
+ * Formats a date according to the app's locale (APP_LOCALE).
  *
- * Pass $format explicitly to override the locale default for a specific case.
+ *   en → m/d/Y H:i  (e.g. 07/31/2026 14:05)
+ *   es → d/m/Y H:i  (e.g. 31/07/2026 14:05)
  *
- * @param string      $datetime  Any string accepted by strtotime() (e.g. a DB TIMESTAMP)
- * @param string|null $format    Optional explicit date() format, bypasses locale default
+ * @param string $datetime  A date/time string parseable by strtotime()
  */
-function format_date(string $datetime, ?string $format = null): string
+function format_date(string $datetime): string
 {
-    $timestamp = strtotime($datetime);
-    if ($timestamp === false) {
-        return '';
+    $locale = env('APP_LOCALE', 'en');
+    $format = $locale === 'es' ? 'd/m/Y H:i' : 'm/d/Y H:i';
+    return date($format, strtotime($datetime));
+}
+
+// ─── Translations ────────────────────────────────────────────────────────────
+
+/**
+ * Loads and caches the translation dictionary for the given locale.
+ * Falls back to an empty array if the file doesn't exist or is invalid.
+ */
+function load_translations(string $locale): array
+{
+    static $cache = [];
+
+    if (isset($cache[$locale])) {
+        return $cache[$locale];
     }
 
-    $format ??= locale() === 'es' ? 'd/m/Y H:i' : 'm/d/Y H:i';
+    $file = __DIR__ . "/lang/$locale.json";
+    if (!file_exists($file)) {
+        return $cache[$locale] = [];
+    }
 
-    return date($format, $timestamp);
+    $json = json_decode(file_get_contents($file), true);
+    return $cache[$locale] = is_array($json) ? $json : [];
+}
+
+/**
+ * Translates a dot-notation key using APP_LOCALE (e.g. t('nav.home')).
+ *
+ * Falls back to the English dictionary if the key is missing in the
+ * current locale, and to the key itself if it's missing everywhere.
+ *
+ * @param string $key      Dot-notation key, e.g. 'errors.404_title'
+ * @param array  $replace  Optional placeholders, e.g. ['name' => 'Sam'] replaces ":name"
+ */
+function t(string $key, array $replace = []): string
+{
+    $locale  = env('APP_LOCALE', 'en');
+    $segments = explode('.', $key);
+
+    $lookup = function (array $dict) use ($segments): ?string {
+        $value = $dict;
+        foreach ($segments as $segment) {
+            if (!is_array($value) || !array_key_exists($segment, $value)) {
+                return null;
+            }
+            $value = $value[$segment];
+        }
+        return is_string($value) ? $value : null;
+    };
+
+    $translated = $lookup(load_translations($locale))
+        ?? $lookup(load_translations('en'))
+        ?? $key;
+
+    foreach ($replace as $placeholder => $value) {
+        $translated = str_replace(":$placeholder", (string) $value, $translated);
+    }
+
+    return $translated;
 }

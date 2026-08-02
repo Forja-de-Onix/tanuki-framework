@@ -1,0 +1,78 @@
+{
+    "nav": {
+        "home": "Inicio",
+        "about": "Acerca de",
+        "todo": "TODO List"
+    },
+    "home": {
+        "title": "Inicio",
+        "message": "Bienvenido a Tanuki Framework. Un MVC ligero en PHP."
+    },
+    "about": {
+        "title": "Acerca de",
+        "description": "Tanuki es un framework PHP ligero y minimalista con arquitectura MVC."
+    },
+    "common": {
+        "back": "Volver",
+        "cancel": "Cancelar",
+        "save": "Guardar",
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "created": "Creada",
+        "modified": "Modificada",
+        "yes": "Sí",
+        "no": "No"
+    },
+    "todo": {
+        "list_title": "TODO List",
+        "new_task_title": "Nueva Tarea",
+        "edit_task_title": "Editar Tarea",
+        "count_summary": ":total tareas — :pending pendientes, :completed completadas",
+        "new_task_button": "+ Nueva tarea",
+        "create_task_button": "+ Crear tarea",
+        "empty_state": "Todavía no hay tareas. ¡Crea la primera!",
+        "th_status": "Estado",
+        "th_title": "Título",
+        "th_description": "Descripción",
+        "th_created": "Creada",
+        "th_actions": "Acciones",
+        "status_done": "✓ Hecha",
+        "status_pending": "⏳ Pendiente",
+        "action_reopen": "↩ Reabrir",
+        "action_complete": "✓ Completar",
+        "confirm_delete": "¿Seguro que quieres eliminar esta tarea?",
+        "confirm_delete_edit": "¿Seguro que quieres eliminar esta tarea? Esta acción no se puede deshacer.",
+        "confirm_delete_show": "¿Eliminar esta tarea?",
+        "label_title": "Título",
+        "label_description": "Descripción (opcional)",
+        "label_status": "Estado",
+        "placeholder_title": "Ej: Comprar leche",
+        "placeholder_description_new": "Añade más detalles sobre la tarea...",
+        "placeholder_description_edit": "Añade más detalles...",
+        "option_pending": "⏳ Pendiente",
+        "option_completed": "✓ Completada",
+        "create_task": "Crear tarea",
+        "save_changes": "Guardar cambios",
+        "danger_zone_title": "Zona de peligro",
+        "danger_zone_text": "Esta acción es irreversible. La tarea se eliminará permanentemente.",
+        "delete_task_button": "Eliminar tarea",
+        "no_description": "Sin descripción.",
+        "mark_pending": "↩ Marcar como pendiente",
+        "mark_completed": "✓ Marcar como completada",
+        "flash_title_required": "El título es obligatorio.",
+        "flash_created": "¡Tarea creada correctamente!",
+        "flash_create_failed": "No se pudo crear la tarea. Inténtalo de nuevo.",
+        "flash_updated": "¡Tarea actualizada correctamente!",
+        "flash_update_failed": "No se pudo actualizar la tarea.",
+        "flash_deleted": "Tarea eliminada.",
+        "flash_delete_failed": "No se pudo eliminar la tarea."
+    },
+    "errors": {
+        "404_title": "La página que buscas no existe o fue movida.",
+        "404_back": "Volver al inicio",
+        "500_title": "Ocurrió un error interno. Estamos trabajando en ello.",
+        "500_back": "Volver al inicio",
+        "503_title": "No se pudo conectar a la base de datos. Inténtalo de nuevo más tarde.",
+        "503_back": "Volver al inicio"
+    }
+}
