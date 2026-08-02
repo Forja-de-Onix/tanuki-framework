@@ -49,7 +49,7 @@ class Model
     private static function quoteIdent(string $ident): string
     {
         $driver = env('DB_DRIVER', 'mysql');
-        return $driver === 'pgsql' ? "\"$ident\"" : "`$ident`";
+        return in_array($driver, ['pgsql', 'sqlite'], true) ? "\"$ident\"" : "`$ident`";
     }
 
     // ─── Read ─────────────────────────────────────────────────────────────────

@@ -545,6 +545,13 @@ See `controllers/TodoController.php` in the repo for the full implementation —
 
 There is no step 6. The autoloader finds `TodoModel.php` and `TodoController.php` automatically by class name. Just visit `/todo` in the browser.
 
+### Notes on the updated tutorial
+
+Since the last revision, the example CRUD demonstrates two additional security patterns you can reuse in your own resources:
+
+- **Form repopulation (`old()` + `keep_old()`):** when `store()`/`update()` fail validation (empty title), the controller calls `keep_old(['title' => ..., 'description' => ...])` before redirecting. `view()` automatically clears that value after the next render, so it only survives a single form. `create.php` already consumes it via `old('title')`/`old('description')` — no further view changes needed.
+- **CSRF protection (`csrf_field()` + `csrf_verify()`):** every `<form>` in the CRUD now includes `<?= csrf_field() ?>`, and every controller action that mutates data (`store()`, `update()`, `destroy()`) starts by verifying `csrf_verify($this->request->post('_token'))` before touching the database. See the [Security](#security) section for the full detail on these two helpers and why they aren't enforced globally by the router.
+
 ---
 
 ## Adding your own CRUD

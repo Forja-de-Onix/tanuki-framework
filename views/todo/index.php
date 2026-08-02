@@ -55,6 +55,7 @@
 
                             <!-- Toggle completed / pending -->
                             <form method="POST" action="/todo/<?= e($td['id']) ?>" class="inline-form">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="_method" value="PUT">
                                 <input type="hidden" name="title"       value="<?= e($td['title']) ?>">
                                 <input type="hidden" name="description" value="<?= e($td['description']) ?>">
@@ -67,6 +68,7 @@
                             <!-- Delete -->
                             <form method="POST" action="/todo/<?= e($td['id']) ?>" class="inline-form"
                                   onsubmit="return confirm('<?= e(t('todo.confirm_delete')) ?>')">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="_method" value="DELETE">
                                 <button type="submit" class="btn btn-danger btn-sm"><?= e(t('common.delete')) ?></button>
                             </form>

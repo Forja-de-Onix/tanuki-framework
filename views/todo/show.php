@@ -35,6 +35,7 @@
     <!-- Quick actions -->
     <div class="quick-actions">
         <form method="POST" action="/todo/<?= e($todo['id']) ?>" class="grow">
+            <?= csrf_field() ?>
             <input type="hidden" name="_method" value="PUT">
             <input type="hidden" name="title"       value="<?= e($todo['title']) ?>">
             <input type="hidden" name="description" value="<?= e($todo['description']) ?>">
@@ -46,6 +47,7 @@
 
         <form method="POST" action="/todo/<?= e($todo['id']) ?>"
               onsubmit="return confirm('<?= e(t('todo.confirm_delete_show')) ?>')">
+            <?= csrf_field() ?>
             <input type="hidden" name="_method" value="DELETE">
             <button type="submit" class="btn btn-danger"><?= e(t('common.delete')) ?></button>
         </form>

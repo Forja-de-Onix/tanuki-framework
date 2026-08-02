@@ -16,7 +16,6 @@ class TodoController extends Controller
 {
     // ── GET /todo ────────────────────────────────────────────────────────────
 
-    /** List of all todos */
     public function index(): void
     {
         $todo = TodoModel::allOrdered();
@@ -32,7 +31,6 @@ class TodoController extends Controller
 
     // ── GET /todo/create ─────────────────────────────────────────────────────
 
-    /** Form to create a new todo */
     public function create(): void
     {
         $this->view('todo/create', [
@@ -42,14 +40,18 @@ class TodoController extends Controller
 
     // ── POST /todo ───────────────────────────────────────────────────────────
 
-    /** Saves a new todo to the DB */
     public function store(): void
     {
+        if (!csrf_verify($this->request->post('_token'))) {
+            $this->flash('error', 'Invalid or expired session. Please try again.');
+            $this->redirect('/todo/create');
+        }
+
         $title       = $this->request->post('title');
         $description = $this->request->post('description', '');
 
-        // Basic validation
         if (empty($title)) {
+            keep_old(['title' => $title, 'description' => $description]);
             $this->flash('error', t('todo.flash_title_required'));
             $this->redirect('/todo/create');
         }
@@ -71,7 +73,6 @@ class TodoController extends Controller
 
     // ── GET /todo/{id} ───────────────────────────────────────────────────────
 
-    /** Todo detail */
     public function show(string $id): void
     {
         $todo = TodoModel::find((int) $id);
@@ -81,14 +82,13 @@ class TodoController extends Controller
         }
 
         $this->view('todo/show', [
-            'title' => e($todo['title']) . ' — ' . env('APP_NAME', 'Tanuki App'),
+            'title' => $todo['title'] . ' — ' . env('APP_NAME', 'Tanuki App'),
             'todo'  => $todo,
         ]);
     }
 
     // ── GET /todo/{id}/edit ──────────────────────────────────────────────────
 
-    /** Edit form */
     public function edit(string $id): void
     {
         $todo = TodoModel::find((int) $id);
@@ -105,9 +105,13 @@ class TodoController extends Controller
 
     // ── PUT /todo/{id} ───────────────────────────────────────────────────────
 
-    /** Updates an existing todo */
     public function update(string $id): void
     {
+        if (!csrf_verify($this->request->post('_token'))) {
+            $this->flash('error', 'Invalid or expired session. Please try again.');
+            $this->redirect("/todo/$id/edit");
+        }
+
         $todo = TodoModel::find((int) $id);
 
         if (!$todo) {
@@ -119,6 +123,7 @@ class TodoController extends Controller
         $completed   = $this->request->post('completed') === '1' ? 1 : 0;
 
         if (empty($title)) {
+            keep_old(['title' => $title, 'description' => $description]);
             $this->flash('error', t('todo.flash_title_required'));
             $this->redirect("/todo/$id/edit");
         }
@@ -140,9 +145,13 @@ class TodoController extends Controller
 
     // ── DELETE /todo/{id} ────────────────────────────────────────────────────
 
-    /** Deletes a todo */
     public function destroy(string $id): void
     {
+        if (!csrf_verify($this->request->post('_token'))) {
+            $this->flash('error', 'Invalid or expired session. Please try again.');
+            $this->redirect('/todo');
+        }
+
         $todo = TodoModel::find((int) $id);
 
         if (!$todo) {

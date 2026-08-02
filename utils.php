@@ -86,18 +86,17 @@ function view(string $name, array $data = []): void
         throw new RuntimeException("View '$name' does not exist at $viewFile");
     }
 
-    // Current normalized URI — available in every view
     $data['uri'] = $data['uri'] ?? current_uri();
-
-    // Extract $data into the current scope (makes $title, etc. available)
     extract($data, EXTR_SKIP);
 
-    // Capture the view's content in a buffer
     ob_start();
     require $viewFile;
     $content = ob_get_clean();
 
-    // Render layout: head receives $title (from extract) + footer closes </main>
+    // Old input is meant to survive exactly one render (the form that
+    // redisplays it after a failed validation) — clear it now.
+    unset($_SESSION['old']);
+
     require __DIR__ . '/includes/head.php';
     echo $content;
     require __DIR__ . '/includes/footer.php';
@@ -157,6 +156,17 @@ function old(string $key, mixed $default = ''): mixed
 {
     session_ensure();
     return $_SESSION['old'][$key] ?? $default;
+}
+
+/**
+ * Saves the given data to the session so old() can retrieve it after
+ * a redirect (typically used on validation failure, before redirecting
+ * back to the form).
+ */
+function keep_old(array $data): void
+{
+    session_ensure();
+    $_SESSION['old'] = $data;
 }
 
 // ─── Locale ────────────────────────────────────────────────────────────────────
@@ -243,4 +253,42 @@ function t(string $key, array $replace = []): string
     }
 
     return $translated;
+}
+
+// ─── CSRF protection (opt-in) ──────────────────────────────────────────────
+
+/**
+ * Returns the current CSRF token, generating one and storing it in the
+ * session on first call. The same token persists for the whole session
+ * (not regenerated per request), so multiple open tabs/forms keep working.
+ */
+function csrf_token(): string
+{
+    session_ensure();
+    if (empty($_SESSION['_csrf_token'])) {
+        $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['_csrf_token'];
+}
+
+/**
+ * Renders a hidden input with the current CSRF token, ready to drop
+ * inside any <form>.
+ */
+function csrf_field(): string
+{
+    return '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+}
+
+/**
+ * Verifies a submitted token against the session's CSRF token using a
+ * timing-safe comparison. Returns false if missing or mismatched.
+ */
+function csrf_verify(?string $submittedToken): bool
+{
+    session_ensure();
+    if (empty($_SESSION['_csrf_token']) || empty($submittedToken)) {
+        return false;
+    }
+    return hash_equals($_SESSION['_csrf_token'], $submittedToken);
 }

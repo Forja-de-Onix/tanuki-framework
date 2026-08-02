@@ -6,6 +6,7 @@
 
     <div class="card">
         <form method="POST" action="/todo">
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label for="title"><?= e(t('todo.label_title')) ?> <span style="color:var(--danger)">*</span></label>
                 <input

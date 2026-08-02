@@ -5,8 +5,8 @@
     </div>
 
     <div class="card">
-        <!-- PUT via method override -->
         <form method="POST" action="/todo/<?= e($todo['id']) ?>">
+            <?= csrf_field() ?>
             <input type="hidden" name="_method" value="PUT">
 
             <div class="form-group">
@@ -51,6 +51,7 @@
         <p><?= e(t('todo.danger_zone_text')) ?></p>
         <form method="POST" action="/todo/<?= e($todo['id']) ?>"
               onsubmit="return confirm('<?= e(t('todo.confirm_delete_edit')) ?>')">
+            <?= csrf_field() ?>
             <input type="hidden" name="_method" value="DELETE">
             <button type="submit" class="btn btn-danger btn-sm"><?= e(t('todo.delete_task_button')) ?></button>
         </form>

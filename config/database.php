@@ -25,35 +25,49 @@ class Database
             return self::$pdo;
         }
 
-        $driver  = env('DB_DRIVER',  'mysql');
-        $host    = env('DB_HOST',    'localhost');
-        $port    = env('DB_PORT',    $driver === 'pgsql' ? '5432' : '3306');
-        $dbname  = env('DB_NAME',    '');
-        $user    = env('DB_USER',    'root');
-        $pass    = env('DB_PASS',    '');
-        $charset = env('DB_CHARSET', 'utf8mb4');
-
-        $dsn = match ($driver) {
-            'pgsql' => "pgsql:host=$host;port=$port;dbname=$dbname",
-            default => "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset",
-        };
+        $driver = env('DB_DRIVER', 'mysql');
 
         try {
-            self::$pdo = new PDO(
-                $dsn,
-                $user,
-                $pass,
-                [
-                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES   => false,
-                ]
-            );
+            if ($driver === 'sqlite') {
+                $path = env('DB_PATH', __DIR__ . '/../database.sqlite');
+                self::$pdo = new PDO(
+                    "sqlite:$path",
+                    null,
+                    null,
+                    [
+                        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    ]
+                );
+                // SQLite ignores foreign keys unless explicitly enabled per connection
+                self::$pdo->exec('PRAGMA foreign_keys = ON');
+            } else {
+                $host    = env('DB_HOST',    'localhost');
+                $port    = env('DB_PORT',    $driver === 'pgsql' ? '5432' : '3306');
+                $dbname  = env('DB_NAME',    '');
+                $user    = env('DB_USER',    'root');
+                $pass    = env('DB_PASS',    '');
+                $charset = env('DB_CHARSET', 'utf8mb4');
+
+                $dsn = match ($driver) {
+                    'pgsql' => "pgsql:host=$host;port=$port;dbname=$dbname",
+                    default => "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset",
+                };
+
+                self::$pdo = new PDO(
+                    $dsn,
+                    $user,
+                    $pass,
+                    [
+                        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_EMULATE_PREPARES   => false,
+                    ]
+                );
+            }
         } catch (PDOException $e) {
-            // Log the real error server-side (never expose it to the user)
             error_log('[Tanuki:DB] Connection error: ' . $e->getMessage());
 
-            // In debug mode we show the detail; in production, a generic message
             if (env('APP_DEBUG', 'false') === 'true') {
                 throw $e;
             }

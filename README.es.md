@@ -546,6 +546,13 @@ Consulta `controllers/TodoController.php` en el repo para la implementación com
 
 No hay paso 6. El autoloader encuentra `TodoModel.php` y `TodoController.php` automáticamente por el nombre de la clase. Solo visita `/todo` en el navegador.
 
+### Notas sobre el tutorial actualizado
+
+Desde la última revisión, el CRUD de ejemplo demuestra dos patrones adicionales de seguridad que puedes reutilizar en tus propios recursos:
+
+- **Repoblado de formularios (`old()` + `keep_old()`):** cuando `store()`/`update()` fallan la validación (título vacío), el controlador llama a `keep_old(['title' => ..., 'description' => ...])` antes de redirigir. `view()` limpia automáticamente ese valor tras el siguiente render, así que solo sobrevive a un único formulario. `create.php` ya lo consume con `old('title')`/`old('description')` — no hace falta ningún cambio adicional en la vista.
+- **Protección CSRF (`csrf_field()` + `csrf_verify()`):** cada `<form>` del CRUD incluye ahora `<?= csrf_field() ?>`, y cada acción del controlador que muta datos (`store()`, `update()`, `destroy()`) empieza verificando `csrf_verify($this->request->post('_token'))` antes de tocar la base de datos. Ver la sección [Seguridad](#seguridad) para el detalle completo de estos dos helpers y por qué no vienen forzados por defecto en el router.
+
 ---
 
 ## Añadir tu propio CRUD
