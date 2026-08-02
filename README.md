@@ -8,21 +8,25 @@ A lightweight PHP framework with a clean MVC architecture, database access, and 
 
 ## Table of contents
 
-1. [Installation](#installation)
-2. [Project structure](#project-structure)
-3. [Request lifecycle](#request-lifecycle)
-4. [Routes](#routes)
-5. [Controllers](#controllers)
-6. [The Request class](#the-request-class)
-7. [Models](#models)
-8. [Views and layout](#views-and-layout)
-9. [Global helpers](#global-helpers)
-10. [Optional connections: Redis and MongoDB](#optional-connections-redis-and-mongodb)
-11. [Walkthrough: the built-in TODO CRUD](#walkthrough-the-built-in-todo-crud)
-12. [Adding your own CRUD](#adding-your-own-crud)
-13. [Security](#security)
-14. [Local development with Xdebug](#local-development-with-xdebug)
-15. [FAQ](#faq)
+1. [Prerequisites: installing PHP and a database from scratch (Ubuntu)](#prerequisites-installing-php-and-a-database-from-scratch-ubuntu)
+2. [Installation](#installation)
+3. [Project structure](#project-structure)
+4. [Request lifecycle](#request-lifecycle)
+5. [Routes](#routes)
+6. [Controllers](#controllers)
+7. [The Request class](#the-request-class)
+8. [Models](#models)
+9. [Views and layout](#views-and-layout)
+10. [Global helpers](#global-helpers)
+11. [Optional connections: Redis and MongoDB](#optional-connections-redis-and-mongodb)
+12. [Walkthrough: the built-in TODO CRUD](#walkthrough-the-built-in-todo-crud)
+13. [Adding your own CRUD](#adding-your-own-crud)
+14. [Security](#security)
+15. [Local development with Xdebug](#local-development-with-xdebug)
+16. [Internationalization (i18n)](#internationalization-i18n)
+17. [Testing](#testing)
+18. [Docker](#docker)
+19. [FAQ](#faq)
 
 ---
 
@@ -904,7 +908,7 @@ APP_LOCALE=en
 DB_DRIVER=mysql
 DB_HOST=localhost
 DB_PORT=3306
-DB_NAME=tanuki_test
+DB_NAME=tanuki_db
 DB_USER=your_test_user
 DB_PASS=your_test_password
 DB_CHARSET=utf8mb4
@@ -913,8 +917,8 @@ DB_CHARSET=utf8mb4
 Create the test database and table it points to:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS tanuki_test;
-USE tanuki_test;
+CREATE DATABASE IF NOT EXISTS tanuki_db;
+USE tanuki_db;
 
 CREATE TABLE todo (
     id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -991,7 +995,7 @@ final class HelpersTest extends TestCase
 }
 ```
 
-**`tests/Feature/TodoModelTest.php`** (new file — hits the `tanuki_test` database):
+**`tests/Feature/TodoModelTest.php`** (new file — hits the `tanuki_db` database):
 
 ```php
 <?php
@@ -1074,7 +1078,7 @@ final class TodoModelTest extends TestCase
 # Only Unit (no database required)
 ./vendor/bin/phpunit --testsuite Unit
 
-# Only Feature (requires tanuki_test to exist and be reachable)
+# Only Feature (requires tanuki_db to exist and be reachable)
 ./vendor/bin/phpunit --testsuite Feature
 
 # A single file
@@ -1083,6 +1087,177 @@ final class TodoModelTest extends TestCase
 
 ### Notes on this test setup
 
-- **Unit vs Feature** are split on purpose: Unit tests never touch a database, so they can run in any environment (including CI without MySQL configured); Feature tests exercise real queries against `tanuki_test`.
+- **Unit vs Feature** are split on purpose: Unit tests never touch a database, so they can run in any environment (including CI without MySQL configured); Feature tests exercise real queries against `tanuki_db`.
 - `setUp()` clears the `todo` table before every test for isolation. As the suite grows, consider switching to `beginTransaction()` / `rollBack()` around each test instead — faster, and removes any dependency on test execution order.
 - `testInvalidColumnNameIsRejected` and `testEnvReturnsRealValueOfZero` are regression tests tied directly to real bugs found and fixed during development — keep this pattern going: whenever you fix a subtle bug, add a test that would have caught it.
+
+## Docker
+
+Tanuki ships with a full Docker setup: an app container (PHP-FPM), Nginx as a reverse proxy, and a database container (MySQL/MariaDB or PostgreSQL — choose one, see `docker-compose.yml`). Apache is intentionally excluded from this stack; `.htaccess` already covers shared-hosting deployments that use Apache instead.
+
+### Starting the stack
+
+```bash
+# Build and start everything (uses docker-compose.override.yml automatically
+# if present — installs PHPUnit + Xdebug for local development)
+docker compose up -d --build
+
+# View logs
+docker compose logs -f app
+
+# Stop everything
+docker compose down
+
+# Stop and also delete volumes (wipes the database)
+docker compose down -v
+```
+
+Once running, the app is reachable at `http://localhost:8050` (the port mapped in `docker-compose.yml`'s `nginx` service — adjust it there if it conflicts with something else on your machine).
+
+### Creating the table inside the container
+
+The `db` container starts with an empty database — you need to create the `todo` table manually the first time, running the SQL client **inside** the container (not on your local machine):
+
+**If using MySQL/MariaDB:**
+
+```bash
+docker compose exec db mysql -u root -p"${DB_ROOT_PASSWORD:-changeme}" "${DB_NAME:-tanuki_db}"
+```
+
+```sql
+CREATE TABLE todo (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    title       VARCHAR(255) NOT NULL,
+    description TEXT,
+    completed   TINYINT(1)  DEFAULT 0,
+    created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+EXIT;
+```
+
+**If using PostgreSQL:**
+
+```bash
+docker compose exec db psql -U "${DB_USER:-tanuki}" -d "${DB_NAME:-tanuki_db}"
+```
+
+```sql
+CREATE TABLE todo (
+    id          SERIAL PRIMARY KEY,
+    title       VARCHAR(255) NOT NULL,
+    description TEXT,
+    completed   BOOLEAN     DEFAULT false,
+    created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+);
+\q
+```
+
+> PostgreSQL doesn't natively support `TINYINT` or `ON UPDATE CURRENT_TIMESTAMP` — hence the different `SERIAL`/`BOOLEAN` types. Auto-refreshing `updated_at` in PostgreSQL would require a trigger; for now `TodoModel::update()` already updates it manually from PHP thanks to `$timestamps = true`, so the trigger isn't needed for the CRUD to work.
+
+**Alternative: load the SQL from a file instead of typing it each time:**
+
+```bash
+docker compose exec -T db mysql -u root -p"${DB_ROOT_PASSWORD:-changeme}" "${DB_NAME:-tanuki_db}" < docker/init.sql
+```
+
+If you prefer this, create `docker/init.sql` with the `CREATE TABLE` for your engine, and consider mounting it for automatic initialization by adding this to the `db` service in `docker-compose.yml` (both MySQL/MariaDB and Postgres support this auto-init mechanism, running any `.sql` file present **only the first time** the data volume is empty):
+
+```yaml
+  db:
+    # ...
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+```
+
+(for PostgreSQL, the mount path is the same `/docker-entrypoint-initdb.d/init.sql`, but the data volume is `/var/lib/postgresql/data` instead of `/var/lib/mysql`).
+
+### `.env` for Docker
+
+Set `DB_HOST=db` so the app container reaches the database container by its service name (containers on the same Docker network resolve each other by service name, not `localhost`):
+
+```ini
+DB_HOST=db
+```
+
+Everything else in `.env` (`DB_NAME`, `DB_USER`, `DB_PASS`, etc.) should match what's set under the `db` service's `environment:` block in `docker-compose.yml`.
+
+### Development vs. production builds
+
+`docker-compose.override.yml` is loaded automatically by Docker Compose whenever it's present alongside `docker-compose.yml` — no extra flag needed for local development. It:
+
+- Builds the app image with `INSTALL_DEV_DEPS=true`, which installs PHPUnit and the Xdebug extension (both skipped in a normal build).
+- Sets `APP_DEBUG=true` and configures Xdebug to reach your host machine.
+
+**For a production build, exclude this file** so dev tools never ship in the image:
+
+```bash
+docker compose -f docker-compose.yml up -d --build
+```
+
+Or simply delete/rename `docker-compose.override.yml` before building your production image.
+
+### Running PHPUnit inside the container
+
+The dev build already has PHPUnit installed via Composer:
+
+```bash
+docker compose exec app ./vendor/bin/phpunit
+docker compose exec app ./vendor/bin/phpunit --testsuite Unit
+docker compose exec app ./vendor/bin/phpunit tests/Feature/TodoModelTest.php
+```
+
+If `tests/Feature/*` tests need a real database, make sure `DB_HOST`, `DB_NAME`, etc. in `.env` point at the `db` service (not `tanuki_db` on `localhost`) — either add a second `db_test` service to `docker-compose.override.yml`, or point `.env.testing` at the same `db` service using a separate database name.
+
+### Debugging with Xdebug inside Docker
+
+This differs from the [local Xdebug setup](#local-development-with-xdebug) in one key way: your editor (Antigravity/VS Code) runs on your **host machine**, not inside the container, so Xdebug has to reach *out* of the container to find it.
+
+**1. Already configured by `docker-compose.override.yml`:**
+
+```yaml
+environment:
+  - XDEBUG_MODE=debug
+  - XDEBUG_CONFIG=client_host=host.docker.internal client_port=9003
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
+`host.docker.internal` is a special DNS name Docker provides that resolves to your host machine's IP from inside a container — this is the piece that replaces `client_host=127.0.0.1` from the local setup, since `127.0.0.1` inside a container points to the container itself, not your host.
+
+**2. `.vscode/launch.json`** — same as the local setup, no changes needed:
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Listen for Xdebug",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "pathMappings": {
+                "/var/www/html": "${workspaceFolder}"
+            }
+        }
+    ]
+}
+```
+
+**Unlike local development, `pathMappings` is required here** — the container sees your project at `/var/www/html`, while your editor sees it at your actual project folder on disk. Without this mapping, breakpoints resolve to the wrong path and never trigger (the same failure mode we diagnosed earlier when `pathMappings` had a stale placeholder — here it's necessary and must point to the real container path).
+
+**3. Debug:**
+
+1. Select "Listen for Xdebug" in Run & Debug and press **F5**.
+2. Make sure the stack is running: `docker compose up -d`.
+3. Set breakpoints and visit `http://localhost:8050`.
+
+**Troubleshooting:** if breakpoints stay `unresolved`, verify `host.docker.internal` resolves correctly from inside the container:
+
+```bash
+docker compose exec app getent hosts host.docker.internal
+```
+
+If that fails, your Docker version may need `--add-host=host.docker.internal:host-gateway` handled differently — this is already set via `extra_hosts` in `docker-compose.override.yml`, but very old Docker Engine versions on native Linux (without Docker Desktop) sometimes need the host's actual `docker0` bridge IP instead. Find it with `ip addr show docker0` and use that IP directly as `client_host` if `host.docker.internal` doesn't resolve.

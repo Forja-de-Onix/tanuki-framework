@@ -33,6 +33,10 @@ class App
     /**
      * Loads the .env file and populates $_ENV.
      * Supported format: KEY=value  (# for comments, quotes optional)
+     *
+     * Environment variables already present (injected by the OS or a
+     * container orchestrator like Docker Compose) take priority over
+     * the .env file — this line only fills in what isn't already set.
      */
     private static function loadEnv(): void
     {
@@ -51,7 +55,13 @@ class App
             [$key, $value] = explode('=', $line, 2);
             $key   = trim($key);
             $value = trim($value, " \t\"'"); // Strip optional quotes
-            $_ENV[$key] = $value;
+
+            if (array_key_exists($key, $_ENV)) {
+                continue; // Already set in $_ENV — don't override
+            }
+
+            $external = getenv($key);
+            $_ENV[$key] = $external !== false ? $external : $value;
         }
     }
 

@@ -8,21 +8,25 @@ Framework PHP ligero con arquitectura MVC limpia, acceso a base de datos y cero 
 
 ## Índice
 
-1. [Instalación](#instalación)
-2. [Estructura del proyecto](#estructura-del-proyecto)
-3. [Ciclo de vida de una petición](#ciclo-de-vida-de-una-petición)
-4. [Rutas](#rutas)
-5. [Controladores](#controladores)
-6. [La clase Request](#la-clase-request)
-7. [Modelos](#modelos)
-8. [Vistas y layout](#vistas-y-layout)
-9. [Helpers globales](#helpers-globales)
-10. [Conexiones opcionales: Redis y MongoDB](#conexiones-opcionales-redis-y-mongodb)
-11. [Tutorial: el CRUD de TODO incluido](#tutorial-el-crud-de-todo-incluido)
-12. [Añadir tu propio CRUD](#añadir-tu-propio-crud)
-13. [Seguridad](#seguridad)
-14. [Desarrollo local con Xdebug](#desarrollo-local-con-xdebug)
-15. [FAQ](#faq)
+1. [Prerrequisitos: instalar PHP y una base de datos desde cero (Ubuntu)](#prerrequisitos-instalar-php-y-una-base-de-datos-desde-cero-ubuntu)
+2. [Instalación](#instalación)
+3. [Estructura del proyecto](#estructura-del-proyecto)
+4. [Ciclo de vida de una petición](#ciclo-de-vida-de-una-petición)
+5. [Rutas](#rutas)
+6. [Controladores](#controladores)
+7. [La clase Request](#la-clase-request)
+8. [Modelos](#modelos)
+9. [Vistas y layout](#vistas-y-layout)
+10. [Helpers globales](#helpers-globales)
+11. [Conexiones opcionales: Redis y MongoDB](#conexiones-opcionales-redis-y-mongodb)
+12. [Tutorial: el CRUD de TODO incluido](#tutorial-el-crud-de-todo-incluido)
+13. [Añadir tu propio CRUD](#añadir-tu-propio-crud)
+14. [Seguridad](#seguridad)
+15. [Desarrollo local con Xdebug](#desarrollo-local-con-xdebug)
+16. [Internacionalización (i18n)](#internacionalización-i18n)
+17. [Testing](#testing)
+18. [Docker](#docker)
+19. [FAQ](#faq)
 
 ---
 
@@ -906,7 +910,7 @@ APP_LOCALE=en
 DB_DRIVER=mysql
 DB_HOST=localhost
 DB_PORT=3306
-DB_NAME=tanuki_test
+DB_NAME=tanuki_db
 DB_USER=tu_usuario_test
 DB_PASS=tu_password_test
 DB_CHARSET=utf8mb4
@@ -915,8 +919,8 @@ DB_CHARSET=utf8mb4
 Crea la base de datos de test y la tabla a la que apunta:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS tanuki_test;
-USE tanuki_test;
+CREATE DATABASE IF NOT EXISTS tanuki_db;
+USE tanuki_db;
 
 CREATE TABLE todo (
     id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -993,7 +997,7 @@ final class HelpersTest extends TestCase
 }
 ```
 
-**`tests/Feature/TodoModelTest.php`** (archivo nuevo — usa la base de datos `tanuki_test`):
+**`tests/Feature/TodoModelTest.php`** (archivo nuevo — usa la base de datos `tanuki_db`):
 
 ```php
 <?php
@@ -1076,7 +1080,7 @@ final class TodoModelTest extends TestCase
 # Solo Unit (no requiere base de datos)
 ./vendor/bin/phpunit --testsuite Unit
 
-# Solo Feature (requiere que tanuki_test exista y sea accesible)
+# Solo Feature (requiere que tanuki_db exista y sea accesible)
 ./vendor/bin/phpunit --testsuite Feature
 
 # Un archivo concreto
@@ -1085,6 +1089,177 @@ final class TodoModelTest extends TestCase
 
 ### Notas sobre esta configuración de tests
 
-- **Unit vs Feature** están separados a propósito: los Unit nunca tocan base de datos, así que pueden correr en cualquier entorno (incluido CI sin MySQL configurado); los Feature ejecutan queries reales contra `tanuki_test`.
+- **Unit vs Feature** están separados a propósito: los Unit nunca tocan base de datos, así que pueden correr en cualquier entorno (incluido CI sin MySQL configurado); los Feature ejecutan queries reales contra `tanuki_db`.
 - `setUp()` vacía la tabla `todo` antes de cada test para aislarlos. Según crezca la suite, valdría la pena migrar a `beginTransaction()` / `rollBack()` alrededor de cada test — más rápido, y elimina cualquier dependencia del orden de ejecución.
 - `testInvalidColumnNameIsRejected` y `testEnvReturnsRealValueOfZero` son tests de regresión atados directamente a bugs reales encontrados y corregidos durante el desarrollo — mantén este patrón: cada vez que arregles un bug sutil, añade un test que lo hubiera detectado.
+
+## Docker
+
+Tanuki incluye una configuración completa de Docker: un contenedor de app (PHP-FPM), Nginx como proxy inverso, y un contenedor de base de datos (MySQL/MariaDB o PostgreSQL — elige uno, ver `docker-compose.yml`). Apache queda excluido a propósito de este stack; `.htaccess` ya cubre los despliegues en hosting compartido que usan Apache en su lugar.
+
+### Arrancar el stack
+
+```bash
+# Construye y arranca todo (usa docker-compose.override.yml automáticamente
+# si está presente — instala PHPUnit + Xdebug para desarrollo local)
+docker compose up -d --build
+
+# Ver logs
+docker compose logs -f app
+
+# Parar todo
+docker compose down
+
+# Parar y borrar también los volúmenes (borra la base de datos)
+docker compose down -v
+```
+
+Una vez arrancado, la app está disponible en `http://localhost:8050` (el puerto mapeado en el servicio `nginx` de `docker-compose.yml` — ajústalo ahí si entra en conflicto con algo más en tu máquina).
+
+### Crear la tabla dentro del contenedor
+
+El contenedor `db` arranca con la base de datos vacía — hay que crear la tabla `todo` manualmente la primera vez, ejecutando el cliente SQL **dentro** del contenedor (no en tu máquina local):
+
+**Si usas MySQL/MariaDB:**
+
+```bash
+docker compose exec db mysql -u root -p"${DB_ROOT_PASSWORD:-changeme}" "${DB_NAME:-tanuki_db}"
+```
+
+```sql
+CREATE TABLE todo (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    title       VARCHAR(255) NOT NULL,
+    description TEXT,
+    completed   TINYINT(1)  DEFAULT 0,
+    created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+EXIT;
+```
+
+**Si usas PostgreSQL:**
+
+```bash
+docker compose exec db psql -U "${DB_USER:-tanuki}" -d "${DB_NAME:-tanuki_db}"
+```
+
+```sql
+CREATE TABLE todo (
+    id          SERIAL PRIMARY KEY,
+    title       VARCHAR(255) NOT NULL,
+    description TEXT,
+    completed   BOOLEAN     DEFAULT false,
+    created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+);
+\q
+```
+
+> PostgreSQL no soporta `TINYINT` ni `ON UPDATE CURRENT_TIMESTAMP` de forma nativa — de ahí los tipos `SERIAL`/`BOOLEAN` distintos. El refresco automático de `updated_at` en PostgreSQL requeriría un trigger; por ahora, `TodoModel::update()` ya lo actualiza manualmente desde PHP gracias a `$timestamps = true`, así que no hace falta el trigger para que el CRUD funcione.
+
+**Alternativa: cargar el SQL desde un archivo, sin escribirlo a mano cada vez:**
+
+```bash
+docker compose exec -T db mysql -u root -p"${DB_ROOT_PASSWORD:-changeme}" "${DB_NAME:-tanuki_db}" < docker/init.sql
+```
+
+Si prefieres esto, crea `docker/init.sql` con el `CREATE TABLE` correspondiente a tu motor, y considera montarlo automáticamente en el arranque del contenedor añadiendo esto al servicio `db` en `docker-compose.yml` (MySQL/MariaDB y Postgres soportan ambos este mecanismo de auto-inicialización, ejecutando cualquier `.sql` presente ahí **solo la primera vez** que el volumen de datos está vacío):
+
+```yaml
+  db:
+    # ...
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+```
+
+(para PostgreSQL, la ruta de montaje sería `/docker-entrypoint-initdb.d/init.sql` igual, pero el volumen de datos es `/var/lib/postgresql/data` en vez de `/var/lib/mysql`).
+
+### `.env` para Docker
+
+Pon `DB_HOST=db` para que el contenedor de la app alcance al contenedor de la base de datos por su nombre de servicio (los contenedores en la misma red de Docker se resuelven por nombre de servicio, no por `localhost`):
+
+```ini
+DB_HOST=db
+```
+
+El resto del `.env` (`DB_NAME`, `DB_USER`, `DB_PASS`, etc.) debe coincidir con lo configurado en el bloque `environment:` del servicio `db` en `docker-compose.yml`.
+
+### Builds de desarrollo vs. producción
+
+`docker-compose.override.yml` se carga automáticamente por Docker Compose siempre que esté presente junto a `docker-compose.yml` — no hace falta ningún flag extra para desarrollo local. Este archivo:
+
+- Construye la imagen de la app con `INSTALL_DEV_DEPS=true`, que instala PHPUnit y la extensión Xdebug (ambos se omiten en un build normal).
+- Establece `APP_DEBUG=true` y configura Xdebug para que alcance tu máquina anfitriona.
+
+**Para un build de producción, excluye este archivo** para que las herramientas de desarrollo nunca vayan en la imagen:
+
+```bash
+docker compose -f docker-compose.yml up -d --build
+```
+
+O simplemente elimina/renombra `docker-compose.override.yml` antes de construir tu imagen de producción.
+
+### Ejecutar PHPUnit dentro del contenedor
+
+El build de desarrollo ya tiene PHPUnit instalado vía Composer:
+
+```bash
+docker compose exec app ./vendor/bin/phpunit
+docker compose exec app ./vendor/bin/phpunit --testsuite Unit
+docker compose exec app ./vendor/bin/phpunit tests/Feature/TodoModelTest.php
+```
+
+Si los tests de `tests/Feature/*` necesitan una base de datos real, asegúrate de que `DB_HOST`, `DB_NAME`, etc. en `.env` apunten al servicio `db` (no a `tanuki_db` en `localhost`) — o bien añade un segundo servicio `db_test` a `docker-compose.override.yml`, o apunta `.env.testing` al mismo servicio `db` usando un nombre de base de datos distinto.
+
+### Depurar con Xdebug dentro de Docker
+
+Esto difiere de la [configuración local de Xdebug](#desarrollo-local-con-xdebug) en un punto clave: tu editor (Antigravity/VS Code) corre en tu **máquina anfitriona**, no dentro del contenedor, así que Xdebug tiene que "salir" del contenedor para encontrarlo.
+
+**1. Ya configurado por `docker-compose.override.yml`:**
+
+```yaml
+environment:
+  - XDEBUG_MODE=debug
+  - XDEBUG_CONFIG=client_host=host.docker.internal client_port=9003
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
+`host.docker.internal` es un nombre DNS especial que Docker provee y que resuelve a la IP de tu máquina anfitriona desde dentro de un contenedor — esta es la pieza que reemplaza a `client_host=127.0.0.1` de la configuración local, ya que `127.0.0.1` dentro de un contenedor apunta al propio contenedor, no a tu máquina.
+
+**2. `.vscode/launch.json`** — igual que la configuración local, sin cambios necesarios salvo uno:
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Escuchar Xdebug",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "pathMappings": {
+                "/var/www/html": "${workspaceFolder}"
+            }
+        }
+    ]
+}
+```
+
+**A diferencia del desarrollo local, aquí `pathMappings` sí es necesario** — el contenedor ve tu proyecto en `/var/www/html`, mientras que tu editor lo ve en la carpeta real de tu proyecto en disco. Sin este mapeo, los breakpoints resuelven a la ruta equivocada y nunca se disparan (el mismo fallo que diagnosticamos antes cuando `pathMappings` tenía un placeholder obsoleto — aquí es necesario y debe apuntar a la ruta real del contenedor).
+
+**3. Depurar:**
+
+1. Selecciona "Escuchar Xdebug" en Run & Debug y pulsa **F5**.
+2. Asegúrate de que el stack está corriendo: `docker compose up -d`.
+3. Pon breakpoints y visita `http://localhost:8050`.
+
+**Solución de problemas:** si los breakpoints se quedan en `unresolved`, verifica que `host.docker.internal` resuelve correctamente desde dentro del contenedor:
+
+```bash
+docker compose exec app getent hosts host.docker.internal
+```
+
+Si esto falla, tu versión de Docker podría necesitar manejar `--add-host=host.docker.internal:host-gateway` de forma distinta — esto ya está configurado vía `extra_hosts` en `docker-compose.override.yml`, pero versiones muy antiguas de Docker Engine en Linux nativo (sin Docker Desktop) a veces necesitan la IP real del puente `docker0` del host en su lugar. Encuéntrala con `ip addr show docker0` y usa esa IP directamente como `client_host` si `host.docker.internal` no resuelve.

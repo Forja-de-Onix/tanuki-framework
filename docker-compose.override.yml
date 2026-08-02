@@ -1,0 +1,20 @@
+# Tanuki Framework — Development overrides
+#
+# Docker Compose loads this file automatically alongside docker-compose.yml
+# when present. It installs dev dependencies (PHPUnit) and enables Xdebug —
+# neither should ship in a production image. Delete or rename this file
+# when building for production, or use `docker compose -f docker-compose.yml up`
+# to ignore it explicitly.
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        INSTALL_DEV_DEPS: "true"
+    environment:
+      - APP_DEBUG=true
+      - XDEBUG_MODE=debug
+      - XDEBUG_CONFIG=client_host=host.docker.internal client_port=9003
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
