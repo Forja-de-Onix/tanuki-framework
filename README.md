@@ -8,7 +8,7 @@ A lightweight PHP framework with a clean MVC architecture, database access, and 
 
 ## Table of contents
 
-1. [Prerequisites: installing PHP and a database from scratch (Ubuntu)](#prerequisites-installing-php-and-a-database-from-scratch-ubuntu)
+1. [Prerequisites: installing PHP and a database from scratch (Ubuntu/Mint/Corvorum)](#prerequisites-installing-php-and-a-database-from-scratch-ubuntu-mint-corvorum)
 2. [Installation](#installation)
 3. [Project structure](#project-structure)
 4. [Request lifecycle](#request-lifecycle)
@@ -30,9 +30,9 @@ A lightweight PHP framework with a clean MVC architecture, database access, and 
 
 ---
 
-## Prerequisites: installing PHP and a database from scratch (Ubuntu)
+## Prerequisites: installing PHP and a database from scratch (Ubuntu/Mint/Corvorum)
 
-This section assumes a bare Ubuntu machine with nothing installed. If PHP and your database are already set up, skip to [Installation](#installation).
+This section assumes a bare Ubuntu/Mint/Corvorum machine with nothing installed. If PHP and your database are already set up, skip to [Installation](#installation).
 
 ### 1. PHP
 
@@ -788,9 +788,9 @@ This is a deliberate architecture decision (URL-prefixed vs session-based) rathe
 
 ## Testing
 
-This section assumes a fresh Ubuntu machine with nothing installed yet. If you already have PHP and Composer, skip to [Installing PHPUnit](#installing-phpunit).
+This section assumes a fresh Ubuntu/Mint/Corvorum machine with nothing installed yet. If you already have PHP and Composer, skip to [Installing PHPUnit](#installing-phpunit).
 
-### Installing PHP from scratch (Ubuntu)
+### Installing PHP from scratch (Ubuntu/Mint/Corvorum)
 
 ```bash
 sudo apt update

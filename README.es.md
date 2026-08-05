@@ -8,7 +8,7 @@ Framework PHP ligero con arquitectura MVC limpia, acceso a base de datos y cero 
 
 ## Índice
 
-1. [Prerrequisitos: instalar PHP y una base de datos desde cero (Ubuntu)](#prerrequisitos-instalar-php-y-una-base-de-datos-desde-cero-ubuntu)
+1. [Prerrequisitos: instalar PHP y una base de datos desde cero (Ubuntu/Mint/Corvorum)](#prerrequisitos-instalar-php-y-una-base-de-datos-desde-cero-ubuntu-mint-corvorum)
 2. [Instalación](#instalación)
 3. [Estructura del proyecto](#estructura-del-proyecto)
 4. [Ciclo de vida de una petición](#ciclo-de-vida-de-una-petición)
@@ -30,9 +30,9 @@ Framework PHP ligero con arquitectura MVC limpia, acceso a base de datos y cero 
 
 ---
 
-## Prerrequisitos: instalar PHP y una base de datos desde cero (Ubuntu)
+## Prerrequisitos: instalar PHP y una base de datos desde cero (Ubuntu/Mint/Corvorum)
 
-Esta sección asume una máquina Ubuntu limpia, sin nada instalado. Si ya tienes PHP y tu base de datos configurados, salta directamente a [Instalación](#instalación).
+Esta sección asume una máquina Ubuntu/Mint/Corvorum limpia, sin nada instalado. Si ya tienes PHP y tu base de datos configurados, salta directamente a [Instalación](#instalación).
 
 ### 1. PHP
 
@@ -789,9 +789,9 @@ Esto es una decisión de arquitectura deliberada (con prefijo en URL vs basado e
 
 ## Testing
 
-Esta sección asume una máquina Ubuntu limpia, sin nada instalado todavía. Si ya tienes PHP y Composer, salta directamente a [Instalar PHPUnit](#instalar-phpunit).
+Esta sección asume una máquina Ubuntu/Mint/Corvorum limpia, sin nada instalado todavía. Si ya tienes PHP y Composer, salta directamente a [Instalar PHPUnit](#instalar-phpunit).
 
-### Instalar PHP desde cero (Ubuntu)
+### Instalar PHP desde cero (Ubuntu/Mint/Corvorum)
 
 ```bash
 sudo apt update
