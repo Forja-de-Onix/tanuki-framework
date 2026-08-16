@@ -139,6 +139,7 @@ main {
 
 .form-group input[type="text"],
 .form-group input[type="email"],
+.form-group input[type="password"],
 .form-group textarea,
 .form-group select {
     width: 100%;
@@ -480,4 +481,63 @@ p {
 
 .description-empty {
     font-style: italic;
+}
+
+/* ── User menu / dropdown ─────────────────────── */
+.user-menu {
+    position: relative;
+}
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+}
+.user-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-width: 180px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    z-index: 50;
+    overflow: hidden;
+}
+.user-menu.open .user-dropdown {
+    display: block;
+}
+.user-dropdown-name {
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+.user-dropdown a,
+.user-dropdown button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.6rem 1rem;
+    color: var(--text);
+    text-decoration: none;
+    background: none;
+    border: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: inherit;
+}
+.user-dropdown a:hover,
+.user-dropdown button:hover {
+    background: var(--border);
 }

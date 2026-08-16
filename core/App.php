@@ -13,6 +13,8 @@ require_once __DIR__ . '/../utils.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/redis.php';
 require_once __DIR__ . '/../config/mongo.php';
+require_once __DIR__ . '/../config/mail.php';
+require_once __DIR__ . '/../auth.php';
 
 class App
 {

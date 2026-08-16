@@ -128,6 +128,8 @@ nano .env   # Ajusta DB_NAME, DB_USER, DB_PASS, APP_URL
 
 ### Configuración del entorno (`.env`)
 
+De la raiz del proyecto copiamos .env-example con el nombre .env y actualizamos todos los datos en base a nuestra configuración:
+
 ```ini
 APP_NAME="Mi App"
 APP_ENV=development     # development | production
