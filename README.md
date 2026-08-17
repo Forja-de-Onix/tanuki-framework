@@ -19,14 +19,15 @@ A lightweight PHP framework with a clean MVC architecture, database access, and 
 9. [Views and layout](#views-and-layout)
 10. [Global helpers](#global-helpers)
 11. [Optional connections: Redis and MongoDB](#optional-connections-redis-and-mongodb)
-12. [Walkthrough: the built-in TODO CRUD](#walkthrough-the-built-in-todo-crud)
-13. [Adding your own CRUD](#adding-your-own-crud)
-14. [Security](#security)
-15. [Local development with Xdebug](#local-development-with-xdebug)
-16. [Internationalization (i18n)](#internationalization-i18n)
-17. [Testing](#testing)
-18. [Docker](#docker)
-19. [FAQ](#faq)
+12. [Authentication (tanuki_login)](#authentication-tanuki_login)
+13. [Walkthrough: the built-in TODO CRUD](#walkthrough-the-built-in-todo-crud)
+14. [Adding your own CRUD](#adding-your-own-crud)
+15. [Security](#security)
+16. [Local development with Xdebug](#local-development-with-xdebug)
+17. [Internationalization (i18n)](#internationalization-i18n)
+18. [Testing](#testing)
+19. [Docker](#docker)
+20. [FAQ](#faq)
 
 ---
 
@@ -447,6 +448,12 @@ All shared styles live in `public/assets/css/app.css`, loaded once from `head.ph
 | `format_date($datetime)` | Formats a date according to `APP_LOCALE` (`en` → m/d/Y, `es` → d/m/Y) |
 | `t($key, $replace = [])` | Translates a dot-notation key (see [Internationalization](#internationalization)) |
 | `format_date($datetime)` | Formats a date according to `APP_LOCALE` (`en` → m/d/Y, `es` → d/m/Y) |
+| `keep_old($data)` | Saves data to the session so `old()` can retrieve it after a redirect (used on validation failure) |
+| `csrf_field()` | Renders a hidden `<input>` with the current CSRF token |
+| `csrf_verify($token)` | Timing-safe verification of a submitted CSRF token |
+| `auth_check()` | Returns `true` if a user is currently logged in |
+| `auth_user()` | Returns the logged-in user's record, or `null` |
+| `auth_require()` | Redirects to `/login` if not authenticated; call as the first line of a protected controller method |
 
 ---
 
@@ -480,6 +487,157 @@ composer require mongodb/mongodb
 ```
 
 Both are entirely optional — a project that never calls `Redis::connect()` or `Mongo::connect()` never opens those connections.
+
+---
+
+## Authentication (`tanuki_login`)
+
+Tanuki ships with a complete, session-based authentication system — login, logout, registration, and password recovery by email. Like the TODO CRUD, it lives in the repo from the start but stays completely inert: **no route is registered by default**, so it costs nothing at runtime until you uncomment its routes in `routes.php`.
+
+### What's included
+
+| Piece | File |
+|---|---|
+| Mail sending (SMTP) | `config/mail.php` — `Mail::send($to, $subject, $html)` |
+| Session auth helpers | `auth.php` — `auth_check()`, `auth_user()`, `auth_login()`, `auth_logout()`, `auth_require()` |
+| User model | `models/UserModel.php` |
+| Password reset tokens | `models/PasswordResetModel.php` |
+| Controller | `controllers/AuthController.php` (login, register, forgot/reset password) |
+| Profile editing | `controllers/ProfileController.php` |
+| Views | `views/auth/*.php`, `views/profile/edit.php` |
+
+### 1. Install PHPMailer
+
+```bash
+composer require phpmailer/phpmailer
+```
+
+### 2. Create the tables
+
+**MySQL/MariaDB:**
+
+```sql
+CREATE TABLE users (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    name          VARCHAR(255) NOT NULL,
+    email         VARCHAR(255) NOT NULL UNIQUE,
+    password      VARCHAR(255) NOT NULL,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE password_resets (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    email         VARCHAR(255) NOT NULL,
+    token         VARCHAR(255) NOT NULL,
+    expires_at    TIMESTAMP NOT NULL,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**PostgreSQL:**
+
+```sql
+CREATE TABLE users (
+    id            SERIAL PRIMARY KEY,
+    name          VARCHAR(255) NOT NULL,
+    email         VARCHAR(255) NOT NULL UNIQUE,
+    password      VARCHAR(255) NOT NULL,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE password_resets (
+    id            SERIAL PRIMARY KEY,
+    email         VARCHAR(255) NOT NULL,
+    token         VARCHAR(255) NOT NULL,
+    expires_at    TIMESTAMP NOT NULL,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+If you register the auth routes without creating these tables first, you'll get a clear 500 error (or the detailed exception in debug mode) the first time a query touches `users` — that's the intended signal that this setup step was skipped, not something the framework silently hides behind a 404.
+
+### 3. Load the mail config and auth helpers
+
+In `core/App.php`, alongside the other `config/` requires:
+
+```php
+require_once __DIR__ . '/../config/mail.php';
+```
+
+And add this new require (auth.php lives at the project root, next to `utils.php`):
+
+```php
+require_once __DIR__ . '/../auth.php';
+```
+
+### 4. Configure SMTP in `.env`
+
+```ini
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=no-reply@example.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+### 5. Uncomment the routes
+
+```php
+// routes.php
+'GET  /login'                   => 'AuthController@showLogin',
+'POST /login'                   => 'AuthController@login',
+'POST /logout'                  => 'AuthController@logout',
+'GET  /register'                => 'AuthController@showRegister',
+'POST /register'                => 'AuthController@register',
+'GET  /forgot-password'         => 'AuthController@showForgot',
+'POST /forgot-password'         => 'AuthController@sendResetLink',
+'GET  /reset-password/{token}'  => 'AuthController@showReset',
+'POST /reset-password/{token}'  => 'AuthController@resetPassword',
+'GET  /profile'                 => 'ProfileController@edit',
+'POST /profile'                 => 'ProfileController@update',
+```
+
+> **Watch your spacing.** Route keys are compared as exact strings (`"GET /login"`), so an extra space for column alignment (`'GET  /login'`) silently breaks the match — you'll get a 404 with no error, since the string just doesn't equal any registered key. Keep exactly one space between the method and the path.
+
+### Protecting a route
+
+```php
+class DashboardController extends Controller
+{
+    public function index(): void
+    {
+        auth_require(); // redirects to /login if not authenticated
+        $user = auth_user();
+
+        $this->view('dashboard/index', ['user' => $user]);
+    }
+}
+```
+
+`auth_require()` also saves the current URL before redirecting, so `AuthController::login()` sends the user back to the page they originally wanted after a successful login.
+
+### The user menu in the nav
+
+`includes/head.php` already renders a user dropdown (avatar with the user's initial, profile link, logout button) when `auth_check()` is true, and a "Log In" button when it's false — no extra wiring needed once the routes are active.
+
+### Password reset flow
+
+1. User submits their email at `/forgot-password`.
+2. A random token is generated, hashed with SHA-256, and stored in `password_resets` with a 1-hour expiry. The **plain** token (not the hash) is emailed as part of the reset link — this is standard practice: even if the `password_resets` table leaks, the stored hashes can't be used to reset accounts.
+3. The same "link sent" message is shown whether or not the email exists, to avoid leaking which emails are registered.
+4. `/reset-password/{token}` validates the token against the hash and expiry before allowing a new password.
+
+### Editing your profile
+
+`/profile` lets a logged-in user change their name and, optionally, their password (current password required to confirm the change) — but **not** their email, by design, to keep this first version simple. If your project needs email changes, that typically requires its own re-verification flow (confirm the new address before switching), which is a deliberate addition, not something bolted onto this simpler form.
+
+### CSS note
+
+If you're integrating this into a project that predates `tanuki_login`, make sure `input[type="password"]` is included in `assets/css/app.css`'s form-field selectors — it's easy to only style `input[type="text"]`/`input[type="email"]` and forget password fields, since the TODO CRUD example never used one.
 
 ---
 
@@ -578,6 +736,10 @@ Since the last revision, the example CRUD demonstrates two additional security p
 | **Directory listing** | `Options -Indexes` in `public/.htaccess` |
 | **Sensitive files (Nginx)** | `deny all` for `.env`, `.git`, `.htaccess` |
 | **Spoofed client IP** | `Request::ip()` trusts `X-Forwarded-For`, which any client can set — only rely on it behind a trusted reverse proxy that overwrites that header |
+| **Password storage** | `password_hash()`/`password_verify()` (bcrypt), never plain text |
+| **Password reset tokens** | Stored as SHA-256 hashes, single-use (deleted after redemption), 1-hour expiry |
+| **Session fixation** | `session_regenerate_id(true)` on login and logout |
+| **Email enumeration** | `/forgot-password` shows the same message whether or not the email is registered |
 
 ---
 
@@ -672,7 +834,7 @@ In the Run & Debug view, create `.vscode/launch.json` at the project root:
 ## FAQ
 
 **How do I add authentication?**
-Add the logic in the controller's constructor, or in a private method called from each protected action. Formal middleware support is planned for **Tanuki Lock**, a dedicated version of the framework built on top of this base.
+Tanuki ships with a complete session-based auth system (login, registration, password recovery by email) — see [Authentication](#authentication-tanuki_login). It's inert by default; uncomment its routes in `routes.php` to activate it.
 
 **Can I use a different database engine (PostgreSQL, SQLite)?**
 MySQL and PostgreSQL are supported today via `DB_DRIVER` in `.env`. SQLite isn't wired in yet.
