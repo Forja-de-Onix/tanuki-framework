@@ -46,7 +46,7 @@ class Model
      * Quotes an identifier (table or column name) using the correct
      * escape character for the active DB driver.
      */
-    private static function quoteIdent(string $ident): string
+    protected static function quoteIdent(string $ident): string
     {
         $driver = env('DB_DRIVER', 'mysql');
         return in_array($driver, ['pgsql', 'sqlite'], true) ? "\"$ident\"" : "`$ident`";

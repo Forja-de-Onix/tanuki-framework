@@ -16,6 +16,19 @@
 
 return [
 
+    // ── tanuki_login (uncomment to enable) ──────────────────────────────────
+    'GET /login'                   => 'AuthController@showLogin',
+    'POST /login'                  => 'AuthController@login',
+    'POST /logout'                 => 'AuthController@logout',
+    'GET /register'                => 'AuthController@showRegister',
+    'POST /register'               => 'AuthController@register',
+    'GET /forgot-password'         => 'AuthController@showForgot',
+    'POST /forgot-password'        => 'AuthController@sendResetLink',
+    'GET /reset-password/{token}'  => 'AuthController@showReset',
+    'POST /reset-password/{token}' => 'AuthController@resetPassword',
+    'GET  /profile' => 'ProfileController@edit',
+    'POST /profile' => 'ProfileController@update',
+    
     // ── Main pages ─────────────────────────────────────────────────────────
     'GET /'      => 'HomeController@index',
     'GET /about' => 'AboutController@index',

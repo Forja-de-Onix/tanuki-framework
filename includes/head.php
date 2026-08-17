@@ -17,6 +17,25 @@
                 </a>
             <?php endforeach; ?>
         </nav>
+
+        <?php if (auth_check()): ?>
+            <?php $currentUser = auth_user(); ?>
+            <div class="user-menu">
+                <button type="button" class="user-avatar">
+                    <?= e(mb_strtoupper(mb_substr($currentUser['name'], 0, 1))) ?>
+                </button>
+                <div class="user-dropdown">
+                    <div class="user-dropdown-name"><?= e($currentUser['name']) ?></div>
+                    <a href="/profile"><?= e(t('profile.edit_link')) ?></a>
+                    <form method="POST" action="/logout">
+                        <?= csrf_field() ?>
+                        <button type="submit"><?= e(t('auth.logout_button')) ?></button>
+                    </form>
+                </div>
+            </div>
+        <?php else: ?>
+            <a href="/login" class="btn btn-primary btn-sm"><?= e(t('auth.login_button')) ?></a>
+        <?php endif; ?>
     </header>
     <main>
         <?php

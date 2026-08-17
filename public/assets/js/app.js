@@ -18,3 +18,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }, DISPLAY_TIME);
     });
 });
+
+/**
+ * User menu dropdown: toggles on click, closes on outside click.
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    var menu = document.querySelector('.user-menu');
+    if (!menu) return;
+
+    var toggle = menu.querySelector('.user-avatar');
+
+    toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        menu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function () {
+        menu.classList.remove('open');
+    });
+});
