@@ -191,7 +191,7 @@ function locale(): string
  */
 function format_date(string $datetime): string
 {
-    $locale = env('APP_LOCALE', 'en');
+    $locale = current_locale();
     $format = $locale === 'es' ? 'd/m/Y H:i' : 'm/d/Y H:i';
     return date($format, strtotime($datetime));
 }
@@ -230,7 +230,7 @@ function load_translations(string $locale): array
  */
 function t(string $key, array $replace = []): string
 {
-    $locale  = env('APP_LOCALE', 'en');
+    $locale  = current_locale();
     $segments = explode('.', $key);
 
     $lookup = function (array $dict) use ($segments): ?string {
@@ -291,4 +291,71 @@ function csrf_verify(?string $submittedToken): bool
         return false;
     }
     return hash_equals($_SESSION['_csrf_token'], $submittedToken);
+}
+
+// ─── Locale ────────────────────────────────────────────────────────────────
+
+/**
+ * Returns the active locale: session override if set (chosen via the
+ * language switcher or a /xx/ URL prefix), otherwise APP_LOCALE from .env.
+ */
+function current_locale(): string
+{
+    session_ensure();
+    return $_SESSION['locale'] ?? env('APP_LOCALE', 'en');
+}
+
+/**
+ * Builds the URL for switching to a given language, prefixing the
+ * current path with /{code}. Strips any existing locale prefix first,
+ * so switching from /es/todo to English gives /en/todo, not /en/es/todo.
+ */
+function locale_switch_url(string $code): string
+{
+    $path = current_uri();
+
+    if (preg_match('#^/([a-z]{2})(/.*)?$#', $path, $m) && file_exists(__DIR__ . "/lang/{$m[1]}.json")) {
+        $path = $m[2] !== '' && $m[2] !== null ? $m[2] : '/';
+    }
+
+    return $path === '/' ? "/$code" : "/$code$path";
+}
+
+/**
+ * Returns the list of enabled language codes from ACCEPTED_LANGUAGES (.env),
+ * or an empty array if that variable isn't set — meaning the project is
+ * single-language and the switcher should not be shown.
+ */
+function accepted_locales(): array
+{
+    $raw = env('ACCEPTED_LANGUAGES', null);
+
+    if ($raw === null || trim($raw) === '') {
+        return [];
+    }
+
+    return array_map('trim', explode(',', $raw));
+}
+
+/**
+ * Returns true if the language switcher should be shown at all —
+ * i.e. ACCEPTED_LANGUAGES is set and lists more than one language.
+ */
+function locale_switcher_enabled(): bool
+{
+    return count(accepted_locales()) > 1;
+}
+
+/**
+ * Maps a locale code to its flag emoji and display label.
+ * Add an entry here when you introduce a new language dictionary.
+ */
+function locale_meta(string $code): array
+{
+    $known = [
+        'en' => ['flag' => '🇬🇧', 'label' => 'English'],
+        'es' => ['flag' => '🇪🇸', 'label' => 'Español'],
+    ];
+
+    return $known[$code] ?? ['flag' => strtoupper($code), 'label' => $code];
 }

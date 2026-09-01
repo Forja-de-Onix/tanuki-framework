@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="<?= e(locale()) ?>">
+<html lang="<?= e(current_locale()) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,6 +17,19 @@
                 </a>
             <?php endforeach; ?>
         </nav>
+
+        <?php if (locale_switcher_enabled()): ?>
+            <div class="lang-switcher">
+                <?php foreach (accepted_locales() as $code): ?>
+                    <?php $meta = locale_meta($code); ?>
+                    <a href="<?= e(locale_switch_url($code)) ?>"
+                    class="lang-flag <?= current_locale() === $code ? 'active' : '' ?>"
+                    title="<?= e($meta['label']) ?>">
+                        <?= $meta['flag'] ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
 
         <?php if (auth_check()): ?>
             <?php $currentUser = auth_user(); ?>

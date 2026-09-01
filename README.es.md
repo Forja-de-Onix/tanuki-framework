@@ -447,6 +447,8 @@ Todos los estilos compartidos viven en `public/assets/css/app.css`, cargado una 
 | `old($key, $default)` | Recupera un valor de input anterior (para re-poblar formularios) |
 | `format_date($datetime)` | Formatea una fecha según `APP_LOCALE` (`en` → m/d/Y, `es` → d/m/Y) |
 | `t($clave, $replace = [])` | Traduce una clave en notación de puntos (ver [Internacionalización](#internacionalización)) |
+| `current_locale()` | Idioma activo: override de sesión si existe, si no `APP_LOCALE` del `.env` |
+| `locale_switch_url($code)` | Construye la URL para cambiar a un idioma dado, conservando el path actual |
 | `format_date($datetime)` | Formatea una fecha según `APP_LOCALE` (`en` → m/d/Y, `es` → d/m/Y) |
 | `keep_old($data)` | Guarda datos en sesión para que `old()` los recupere tras un redirect (usado en fallos de validación) |
 | `csrf_field()` | Renderiza un `<input>` oculto con el token CSRF actual |
@@ -846,7 +848,7 @@ Sí. La conexión es perezosa — si ninguna ruta llama nunca a un modelo, nunca
 En `public/assets/`. Se sirven directamente por el servidor web al estar dentro de la raíz de documentos. Referéncialos con `url('/assets/css/app.css')`.
 
 **¿Habrá un sistema de idiomas/i18n?**
-Sí, está planeado: una variable `APP_LOCALE` (`en`/`es`) más archivos de traducción JSON simples y expandibles que las vistas puedan consumir a través de un helper.
+Ya está integrado: `t()` + diccionarios JSON para traducciones, más un selector de idioma funcional con prefijo de URL (`/en/...`, `/es/...`) y banderas en el nav — ver [Internacionalización](#internacionalización).
 
 ## Internacionalización (i18n)
 
@@ -884,71 +886,21 @@ Luego pon `APP_LOCALE=fr` en `.env`. Cualquier clave que dejes sin traducir (o q
 
 ### Selector de idiomas
 
-La versión base (`tanuki_base`) no tiene interfaz, así que no hay nada donde integrar un selector por defecto — `APP_LOCALE` es una configuración fija por despliegue, que se cambia editando `.env`. Un selector de idioma en tiempo real (que el visitante elija su idioma desde el navegador) está pensado para versiones del framework que sí incluyen interfaz real, como **Tanuki Pro**.
+A diferencia del sistema base de i18n (`t()`, diccionarios), el selector **viene conectado por defecto**, pero permanece completamente inerte hasta que se visita realmente una URL `/xx/` o se pulsa un enlace del selector — no añade ningún coste a un proyecto que nunca lo use.
 
-Si tu proyecto necesita un selector antes de eso, aquí tienes el patrón a seguir — no viene conectado por defecto, pero encaja limpiamente sobre lo que ya hay:
+**Cómo funciona:**
 
-**1. Guarda el idioma elegido en sesión, no solo en `.env`.**
+- Visitar una URL con prefijo de 2 letras que tenga un diccionario correspondiente (`/es/todo`, `/en/about`) fija ese idioma para la sesión y quita el prefijo antes de que continúe el enrutado normal — nunca necesitas duplicar rutas con un segmento de idioma en `routes.php`.
+- `ACCEPTED_LANGUAGES` en `.env` (separado por comas, ej. `en,es`) controla qué prefijos están realmente habilitados. Visitar un prefijo cuyo diccionario existe pero no está en esa lista devuelve 404 — es una restricción deliberada a nivel de despliegue, no un bug: te permite tener archivos de traducción de un idioma en el que aún estás trabajando sin exponerlo todavía.
+- Una vez elegido un idioma (por prefijo de URL o por el selector de banderas), se recuerda en sesión — el resto de enlaces del sitio no necesitan ningún prefijo.
+- Si nunca se seleccionó ningún idioma (ni prefijo visitado, ni bandera pulsada), `APP_LOCALE` del `.env` es el idioma por defecto.
+- Las banderas de inglés y español ya están en `includes/head.php`, usando `locale_switch_url()` para preservar la página actual al cambiar.
 
-Añade un pequeño helper a `utils.php`:
+**Añadir un nuevo idioma al selector:** añade su diccionario (`lang/fr.json`), añade el código a `ACCEPTED_LANGUAGES`, y añade un enlace de bandera en `includes/head.php` siguiendo los dos existentes como plantilla.
 
-```php
-/**
- * Devuelve el idioma activo: override de sesión si existe, si no APP_LOCALE.
- */
-function current_locale(): string
-{
-    session_ensure();
-    return $_SESSION['locale'] ?? env('APP_LOCALE', 'en');
-}
-```
+**Limitación conocida:** el primer segmento de una ruta no puede compartir nombre con un código de idioma habilitado que además tenga un archivo de diccionario correspondiente (por ejemplo, evita una ruta literal `/es` para algo no relacionado con español) — el router trata cualquier segmento de 2 letras con un `lang/xx.json` coincidente como prefijo de idioma antes de intentar el matching normal de rutas.
 
-Y actualiza la primera línea de `t()` para que use esto en vez de leer `env()` directamente:
-
-```php
-$locale = current_locale();
-```
-
-**2. Añade una ruta + acción de controlador para cambiar de idioma.**
-
-```php
-// routes.php
-'GET /locale/{lang}' => 'LocaleController@switch',
-```
-
-```php
-<?php
-
-class LocaleController extends Controller
-{
-    private const SUPPORTED = ['en', 'es'];
-
-    public function switch(string $lang): void
-    {
-        if (in_array($lang, self::SUPPORTED, true)) {
-            session_ensure();
-            $_SESSION['locale'] = $lang;
-        }
-        $this->redirect($this->request->post('return_to') ?? '/');
-    }
-}
-```
-
-**3. Añade los enlaces del selector en `includes/head.php`.**
-
-```php
-<a href="/locale/en">EN</a> | <a href="/locale/es">ES</a>
-```
-
-**4. (Opcional, avanzado) Idioma con prefijo en la URL en vez de sesión.**
-
-Algunos proyectos prefieren que el idioma sea visible en la propia URL (`/en/todo`, `/es/todo`) en vez de guardarse en sesión — útil para SEO, ya que los buscadores indexan cada idioma como una URL separada. Esto requiere un pequeño cambio en el router en vez de un controlador nuevo:
-
-- Prefija cada ruta de `routes.php` con un segmento `{lang}`, o genera el array de rutas de forma programática recorriendo los idiomas soportados y anteponiendo `/{lang}` a cada path.
-- En `App::dispatch()`, antes de comparar contra `self::$routes`, quita el segmento inicial `/en` o `/es` de `$uri`, valídalo contra una lista de idiomas soportados, y guárdalo (por ejemplo en una propiedad estática o en sesión) antes de seguir con el resto de la URI como hasta ahora.
-- Cada enlace interno (`url()`, `redirect()`, hrefs en vistas) necesitará entonces el prefijo del idioma actual automáticamente — lo más limpio es hacer que `url()` anteponga `/{locale}` cuando el enrutado con prefijo esté activado, controlado por un nuevo flag en `.env` (por ejemplo `APP_LOCALE_IN_URL=true`).
-
-Esto es una decisión de arquitectura deliberada (con prefijo en URL vs basado en sesión), no una funcionalidad "enchufa y listo", ya que cambia cómo se genera cada ruta y cada enlace interno — planéalo antes de conectarlo a un proyecto con muchas rutas ya existentes.
+Si `ACCEPTED_LANGUAGES` no está definida en `.env`, el selector no se renderiza y los prefijos de URL `/xx/` no se reconocen como prefijos de idioma — el proyecto se trata como mon
 
 ## Testing
 
