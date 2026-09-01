@@ -541,3 +541,23 @@ p {
 .user-dropdown button:hover {
     background: var(--border);
 }
+
+/* ── Language switcher ─────────────────────────── */
+.lang-switcher {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+}
+.lang-flag {
+    font-size: 1.1rem;
+    opacity: 0.5;
+    text-decoration: none;
+    transition: opacity 0.15s;
+    line-height: 1;
+}
+.lang-flag:hover {
+    opacity: 0.8;
+}
+.lang-flag.active {
+    opacity: 1;
+}

@@ -447,6 +447,8 @@ All shared styles live in `public/assets/css/app.css`, loaded once from `head.ph
 | `old($key, $default)` | Retrieves a previous input value (for re-populating forms) |
 | `format_date($datetime)` | Formats a date according to `APP_LOCALE` (`en` → m/d/Y, `es` → d/m/Y) |
 | `t($key, $replace = [])` | Translates a dot-notation key (see [Internationalization](#internationalization)) |
+| `current_locale()` | Active locale: session override if set, otherwise `APP_LOCALE` from `.env` |
+| `locale_switch_url($code)` | Builds the URL for switching to a given language, preserving the current path |
 | `format_date($datetime)` | Formats a date according to `APP_LOCALE` (`en` → m/d/Y, `es` → d/m/Y) |
 | `keep_old($data)` | Saves data to the session so `old()` can retrieve it after a redirect (used on validation failure) |
 | `csrf_field()` | Renders a hidden `<input>` with the current CSRF token |
@@ -846,7 +848,7 @@ Yes. The connection is lazy — if no route ever calls a model, no connection is
 `public/assets/`. They're served directly by the web server since they live inside the document root. Reference them with `url('/assets/css/app.css')`.
 
 **Will there be a language/i18n system?**
-Yes, planned: an `APP_LOCALE` variable (`en`/`es`) plus simple, expandable JSON translation files that views can consume through a helper.
+It's already built in: `t()` + JSON dictionaries for translations, plus a working URL-prefix language switcher (`/en/...`, `/es/...`) with flags in the nav — see [Internationalization](#internationalization).
 
 ## Internationalization (i18n)
 
@@ -884,71 +886,21 @@ Then set `APP_LOCALE=fr` in `.env`. Any key you leave untranslated (or forget to
 
 ### Language selector
 
-The base version (`tanuki_base`) has no UI, so there's nothing to build a switcher into by default — `APP_LOCALE` is a fixed setting per deployment, changed by editing `.env`. A runtime language switcher (letting a visitor pick their language in the browser) is meant for versions of the framework that ship with a real interface, such as **Tanuki Pro**.
+Unlike the base i18n system (`t()`, dictionaries), the switcher **is wired in by default** but stays entirely inert until a `/xx/` URL is actually visited or a switcher link is clicked — it adds no overhead to a project that never uses it.
 
-If your project needs a switcher before then, here's the pattern to follow — it isn't wired in by default, but fits cleanly on top of what's already here:
+**How it works:**
 
-**1. Store the chosen locale in the session, not just `.env`.**
+- Visiting a URL prefixed with a 2-letter code that has a matching dictionary (`/es/todo`, `/en/about`) sets that language for the session and strips the prefix before normal routing continues — you never need to duplicate routes with a language segment in `routes.php`.
+- `ACCEPTED_LANGUAGES` in `.env` (comma-separated, e.g. `en,es`) controls which prefixes are actually enabled. Visiting a prefix whose dictionary exists but isn't listed there returns a 404 — this is a deliberate deployment-level restriction, not a bug: it lets you ship translation files for a language you're still working on without exposing it yet.
+- Once a language is chosen (via URL prefix or the flag switcher), it's remembered in the session — the rest of the site's links don't need any prefix.
+- If no language was ever selected (no prefix visited, no flag clicked), `APP_LOCALE` in `.env` is the default.
+- Flags for English and Spanish are already in `includes/head.php`, using `locale_switch_url()` to preserve the current page when switching.
 
-Add a small helper to `utils.php`:
+**Adding a new language to the switcher:** add its dictionary (`lang/fr.json`), add the code to `ACCEPTED_LANGUAGES`, and add a flag link in `includes/head.php` following the existing two as a template.
 
-```php
-/**
- * Returns the active locale: session override if set, otherwise APP_LOCALE.
- */
-function current_locale(): string
-{
-    session_ensure();
-    return $_SESSION['locale'] ?? env('APP_LOCALE', 'en');
-}
-```
+**Known limitation:** a route's first path segment can't share a name with an enabled language code that also has a matching dictionary file (e.g. avoid a route literally named `/es` for something unrelated to Spanish) — the router treats any 2-letter segment with a matching `lang/xx.json` file as a locale prefix before attempting normal route matching.
 
-And update `t()`'s first line to use it instead of reading `env()` directly:
-
-```php
-$locale = current_locale();
-```
-
-**2. Add a route + controller action to switch languages.**
-
-```php
-// routes.php
-'GET /locale/{lang}' => 'LocaleController@switch',
-```
-
-```php
-<?php
-
-class LocaleController extends Controller
-{
-    private const SUPPORTED = ['en', 'es'];
-
-    public function switch(string $lang): void
-    {
-        if (in_array($lang, self::SUPPORTED, true)) {
-            session_ensure();
-            $_SESSION['locale'] = $lang;
-        }
-        $this->redirect($this->request->post('return_to') ?? '/');
-    }
-}
-```
-
-**3. Add switcher links in `includes/head.php`.**
-
-```php
-<a href="/locale/en">EN</a> | <a href="/locale/es">ES</a>
-```
-
-**4. (Optional, advanced) URL-prefixed locales instead of a session.**
-
-Some projects prefer the language visible in the URL itself (`/en/todo`, `/es/todo`) instead of stored in a session — useful for SEO, since search engines index each language as a separate URL. This needs a small change to the router rather than a new controller:
-
-- Prefix every route in `routes.php` with a `{lang}` segment, or generate the routes array programmatically by looping over supported locales and prepending `/{lang}` to each path.
-- In `App::dispatch()`, before matching against `self::$routes`, strip the leading `/en` or `/es` segment from `$uri`, validate it against a supported-locales list, and store it (e.g. in a static property or the session) before continuing with the rest of the URI as before.
-- Every internal link (`url()`, `redirect()`, hrefs in views) then needs the current locale prefixed automatically — the cleanest way is to make `url()` prepend `/{locale}` when locale-prefixed routing is enabled, controlled by a new `.env` flag (e.g. `APP_LOCALE_IN_URL=true`).
-
-This is a deliberate architecture decision (URL-prefixed vs session-based) rather than a drop-in feature, since it changes how every route and every internal link is generated — plan it before wiring it into a project with many existing routes.
+If `ACCEPTED_LANGUAGES` isn't set in `.env` at all, the switcher doesn't render and `/xx/` URL prefixes aren't recognized as locale prefixes — the project is treated as single-language, using only `APP_LOCALE`.
 
 ## Testing
 

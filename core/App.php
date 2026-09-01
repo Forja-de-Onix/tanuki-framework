@@ -118,8 +118,6 @@ class App
 
     private static function dispatch(): void
     {
-
-        // Real HTTP method (with override support for HTML forms)
         $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
         if ($method === 'POST' && isset($_POST['_method'])) {
             $override = strtoupper($_POST['_method']);
@@ -128,10 +126,31 @@ class App
             }
         }
 
-        // Clean URI (no query string, no trailing slash except root)
-        $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-        if ($uri !== '/' && str_ends_with($uri, '/')) {
-            $uri = rtrim($uri, '/');
+        $uri = current_uri();
+
+        // ── Language prefix detection (optional — inert unless a /xx/ path
+        // is actually visited; see lang/ folder) ─────────────────────────────
+        if (preg_match('#^/([a-z]{2})(/.*)?$#', $uri, $langMatches)) {
+            $code     = $langMatches[1];
+            $langFile = __DIR__ . "/../lang/$code.json";
+
+            // Only treat it as a locale prefix if a dictionary for that
+            // code actually exists — otherwise a route like "/ok" would
+            // wrongly be swallowed by this check.
+            if (file_exists($langFile)) {
+                $accepted = accepted_locales();
+
+                if (empty($accepted) || !in_array($code, $accepted, true)) {
+                    // No hay selector configurado, o este idioma no está habilitado — 404
+                    http_response_code(404);
+                    view('errors/404');
+                    return;
+                }
+
+                session_ensure();
+                $_SESSION['locale'] = $code;
+                $uri = ($langMatches[2] ?? '') !== '' ? $langMatches[2] : '/';
+            }
         }
 
         $routeKey = "$method $uri";
@@ -144,17 +163,14 @@ class App
 
         // 2. Match with parameters  e.g. /todo/{id}
         foreach (self::$routes as $pattern => $handler) {
-            // Extract param names: {id}, {slug} …
             preg_match_all('/\{([^}]+)\}/', $pattern, $paramMatches);
             $paramNames = $paramMatches[1];
 
-            // Convert {param} → regex capture group
             $regex = preg_replace('/\{[^}]+\}/', '([^/]+)', $pattern);
             $regex = '#^' . $regex . '$#';
 
             if (preg_match($regex, $routeKey, $matches)) {
-                array_shift($matches); // Drop full match
-                // Pass values as associative array if names are present
+                array_shift($matches);
                 $params = !empty($paramNames)
                     ? array_combine($paramNames, array_slice($matches, 0, count($paramNames)))
                     : $matches;
