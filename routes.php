@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/admin/AdminController.php'; // tanuki_admin (comment to disable)
+
 /**
  * Tanuki Framework — Route Definitions
  *
@@ -16,7 +18,16 @@
 
 return [
 
-    // ── tanuki_login (uncomment to enable) ──────────────────────────────────
+    // ── tanuki_admin (comment to disable) ────
+    'GET /admin'                      => 'AdminController@dashboard',
+    'GET /admin/{resource}'           => 'AdminController@index',
+    'GET /admin/{resource}/create'    => 'AdminController@create',
+    'POST /admin/{resource}'          => 'AdminController@store',
+    'GET /admin/{resource}/{id}/edit' => 'AdminController@edit',
+    'PUT /admin/{resource}/{id}'      => 'AdminController@update',
+    'DELETE /admin/{resource}/{id}'   => 'AdminController@destroy',
+
+    // ── tanuki_login (comment to disable) ──────────────────────────────────
     'GET /login'                   => 'AuthController@showLogin',
     'POST /login'                  => 'AuthController@login',
     'POST /logout'                 => 'AuthController@logout',
@@ -26,7 +37,7 @@ return [
     'POST /forgot-password'        => 'AuthController@sendResetLink',
     'GET /reset-password/{token}'  => 'AuthController@showReset',
     'POST /reset-password/{token}' => 'AuthController@resetPassword',
-    'GET  /profile' => 'ProfileController@edit',
+    'GET /profile' => 'ProfileController@edit',
     'POST /profile' => 'ProfileController@update',
     
     // ── Main pages ─────────────────────────────────────────────────────────

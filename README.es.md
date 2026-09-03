@@ -643,6 +643,90 @@ Si integras esto en un proyecto anterior a `tanuki_login`, asegúrate de que `in
 
 ---
 
+## Panel de administración (`tanuki_admin`)
+
+Un panel admin ligero inspirado en Django: registras un modelo en un archivo y obtienes una interfaz CRUD de listado/creación/edición/borrado — sin escribir controladores ni vistas por recurso. Completamente aislado dentro de `admin/`; **depende de `tanuki_login`** (requiere un usuario autenticado con `is_admin = 1`).
+
+### Qué incluye
+
+| Pieza | Archivo |
+|---|---|
+| Registro de recursos | `admin/admin.php` — declara qué modelos aparecen y cómo |
+| Controlador genérico | `admin/AdminController.php` — un solo controlador maneja todos los recursos registrados |
+| Plantillas | `admin/templates/*.php` — editables de forma independiente al resto de la app |
+| Script de superusuario | `admin/create-superuser.php` |
+
+### 1. Añade la columna `is_admin`
+
+```sql
+-- MySQL/MariaDB
+ALTER TABLE users ADD COLUMN is_admin TINYINT(1) DEFAULT 0;
+
+-- PostgreSQL
+ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT false;
+```
+
+### 2. Crea tu primera cuenta de administrador
+
+```bash
+php admin/create-superuser.php
+```
+
+Pide nombre, email y contraseña, e inserta el usuario con `is_admin = 1`.
+
+### 3. Registra tus modelos
+
+```php
+// admin/admin.php
+return [
+    'todo' => [
+        'model'       => TodoModel::class,
+        'label'       => 'Tareas',
+        'list_fields' => ['id', 'title', 'completed', 'created_at'],
+        'form_fields' => [
+            'title'       => ['type' => 'text',     'label' => 'Título'],
+            'description' => ['type' => 'textarea', 'label' => 'Descripción'],
+            'completed'   => ['type' => 'checkbox', 'label' => 'Completada'],
+        ],
+        'order_by'  => 'created_at',
+        'order_dir' => 'DESC',
+    ],
+];
+```
+
+Tipos de campo: `text`, `textarea`, `checkbox`, `password`. El tipo `password` nunca muestra el hash guardado, y solo actualiza el campo si se deja no vacío — obligatorio al crear un registro, opcional (mantiene el valor actual) al editar.
+
+### 4. Activa las rutas
+
+```php
+// routes.php — al principio del archivo
+require_once __DIR__ . '/admin/AdminController.php';
+
+// en el array de rutas
+'GET    /admin'                      => 'AdminController@dashboard',
+'GET    /admin/{resource}'           => 'AdminController@index',
+'GET    /admin/{resource}/create'    => 'AdminController@create',
+'POST   /admin/{resource}'           => 'AdminController@store',
+'GET    /admin/{resource}/{id}/edit' => 'AdminController@edit',
+'PUT    /admin/{resource}/{id}'      => 'AdminController@update',
+'DELETE /admin/{resource}/{id}'      => 'AdminController@destroy',
+```
+
+### Eliminar la extensión por completo
+
+Borra la carpeta `admin/` y quita el `require_once` y las rutas de arriba de `routes.php` — nada más en el proyecto referencia `admin/`, así que ningún otro archivo necesita cambiar.
+
+### Personalizar las plantillas
+
+`admin/templates/layout.php`, `dashboard.php`, `index.php` y `form.php` son PHP puro — edítalas directamente para cambiar cómo se ve o se comporta el panel. Como `AdminController::render()` no usa el `view()` de la app principal, las plantillas de admin son totalmente independientes de `includes/head.php`/`footer.php`.
+
+### Cambiar tu propia contraseña vs. la de otro usuario
+
+- Tu propia contraseña: `/profile` (de `tanuki_login`) — pide la contraseña actual antes de permitir el cambio.
+- La contraseña de otro usuario: registra `users` en `admin/admin.php` (ver ejemplo arriba) y edítalo desde `/admin/users` — aquí no aplica comprobación de contraseña actual, ya que es una acción de administrador sobre la cuenta de otra persona, no un cambio de autoservicio.
+
+---
+
 ## Tutorial: el CRUD de TODO incluido
 
 La funcionalidad `todo` (modelo, controlador, rutas y vistas) viene como ejemplo completo y funcional — es la forma más rápida de ver todas las piezas del framework trabajando juntas. Está pensada como **referencia de aprendizaje**, no como parte permanente de tu app: una vez te sientas cómodo con el patrón, elimínala y construye tus propios recursos de la misma forma.
