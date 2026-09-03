@@ -643,6 +643,90 @@ If you're integrating this into a project that predates `tanuki_login`, make sur
 
 ---
 
+## Admin Panel (`tanuki_admin`)
+
+A lightweight Django-inspired admin: register a model in one file, get a CRUD list/create/edit/delete interface for it — no per-resource controllers or views to write. Fully isolated inside `admin/`; **depends on `tanuki_login`** (requires an authenticated user with `is_admin = 1`).
+
+### What's included
+
+| Piece | File |
+|---|---|
+| Resource registry | `admin/admin.php` — declare which models appear and how |
+| Generic controller | `admin/AdminController.php` — one controller drives every registered resource |
+| Templates | `admin/templates/*.php` — editable independently of the rest of the app |
+| Superuser script | `admin/create-superuser.php` |
+
+### 1. Add the `is_admin` column
+
+```sql
+-- MySQL/MariaDB
+ALTER TABLE users ADD COLUMN is_admin TINYINT(1) DEFAULT 0;
+
+-- PostgreSQL
+ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT false;
+```
+
+### 2. Create your first admin account
+
+```bash
+php admin/create-superuser.php
+```
+
+Prompts for name, email, and password, and inserts the user with `is_admin = 1`.
+
+### 3. Register your models
+
+```php
+// admin/admin.php
+return [
+    'todo' => [
+        'model'       => TodoModel::class,
+        'label'       => 'Tasks',
+        'list_fields' => ['id', 'title', 'completed', 'created_at'],
+        'form_fields' => [
+            'title'       => ['type' => 'text',     'label' => 'Title'],
+            'description' => ['type' => 'textarea', 'label' => 'Description'],
+            'completed'   => ['type' => 'checkbox', 'label' => 'Completed'],
+        ],
+        'order_by'  => 'created_at',
+        'order_dir' => 'DESC',
+    ],
+];
+```
+
+Field types: `text`, `textarea`, `checkbox`, `password`. The `password` type never displays the stored hash and only updates the field if left non-empty — required when creating a record, optional (keeps current value) when editing.
+
+### 4. Enable the routes
+
+```php
+// routes.php — at the top
+require_once __DIR__ . '/admin/AdminController.php';
+
+// in the routes array
+'GET    /admin'                      => 'AdminController@dashboard',
+'GET    /admin/{resource}'           => 'AdminController@index',
+'GET    /admin/{resource}/create'    => 'AdminController@create',
+'POST   /admin/{resource}'           => 'AdminController@store',
+'GET    /admin/{resource}/{id}/edit' => 'AdminController@edit',
+'PUT    /admin/{resource}/{id}'      => 'AdminController@update',
+'DELETE /admin/{resource}/{id}'      => 'AdminController@destroy',
+```
+
+### Removing the extension entirely
+
+Delete the `admin/` folder and remove the `require_once` and routes above from `routes.php` — nothing elsewhere in the project references `admin/`, so no other file needs to change.
+
+### Customizing templates
+
+`admin/templates/layout.php`, `dashboard.php`, `index.php`, and `form.php` are plain PHP — edit them directly to change how the panel looks or behaves. Since `AdminController::render()` doesn't use the main app's `view()`, admin templates are entirely independent of `includes/head.php`/`footer.php`.
+
+### Changing your own password vs. changing another user's
+
+- Your own password: `/profile` (from `tanuki_login`) — asks for the current password before allowing a change.
+- Another user's password: register `users` in `admin/admin.php` (see example above) and edit them from `/admin/users` — no current-password check applies here, since it's an admin action on someone else's account, not a self-service change.
+
+---
+
 ## Walkthrough: the built-in TODO CRUD
 
 The `todo` feature (model, controller, routes, and views) ships as a complete working example — it's the fastest way to see every part of the framework working together. It's meant as a **learning reference**, not a permanent part of your app: once you're comfortable with the pattern, remove it and build your own resources the same way.
