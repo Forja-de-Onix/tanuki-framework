@@ -1,8 +1,20 @@
 {
+    "name": "tu-usuario-github/tanuki-base",
+    "description": "A lightweight PHP MVC framework for developers who like vanilla PHP.",
+    "type": "project",
+    "license": "MIT",
+    "keywords": ["php", "framework", "mvc", "lightweight", "vanilla-php"],
+    "authors": [
+        { "name": "Tu Nombre" }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "phpmailer/phpmailer": "^7.1"
+    },
     "require-dev": {
         "phpunit/phpunit": "^10.5"
     },
-    "require": {
-        "phpmailer/phpmailer": "^7.1"
+    "config": {
+        "optimize-autoloader": true
     }
 }
