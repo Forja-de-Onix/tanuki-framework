@@ -18,7 +18,7 @@ $root = __DIR__ . '/..';
 require_once "$root/utils.php";
 require_once "$root/config/database.php";
 require_once "$root/core/Model.php";
-require_once "$root/models/UserModel.php";
+require_once "$root/login/UserModel.php";
 
 // Load .env (same parsing logic as App::loadEnv, kept standalone here
 // since this script runs outside the normal App::run() bootstrap)

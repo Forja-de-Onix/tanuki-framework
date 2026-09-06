@@ -31,7 +31,7 @@
             </div>
         <?php endif; ?>
 
-        <?php if (auth_check()): ?>
+        <?php if (function_exists('auth_check') && auth_check()): ?>
             <?php $currentUser = auth_user(); ?>
             <div class="user-menu">
                 <button type="button" class="user-avatar">
@@ -46,7 +46,7 @@
                     </form>
                 </div>
             </div>
-        <?php else: ?>
+        <?php elseif (function_exists('auth_check')): ?>
             <a href="/login" class="btn btn-primary btn-sm"><?= e(t('auth.login_button')) ?></a>
         <?php endif; ?>
     </header>

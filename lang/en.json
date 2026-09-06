@@ -29,6 +29,12 @@
         "password_reset_success": "Your password has been reset. You can now log in.",
         "logout_button": "Log Out"
     },
+    "admin": {
+        "title": "Admin",
+        "back_to_site": "Back to site",
+        "dashboard_title": "Admin Dashboard",
+        "dashboard_subtitle": "Manage your data below."
+    },
     "profile": {
         "edit_link": "Edit Profile",
         "edit_title": "Edit Profile",

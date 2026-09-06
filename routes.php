@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/admin/AdminController.php'; // tanuki_admin (comment to disable)
+require_once __DIR__ . '/admin/AdminController.php'; // tanuki_admin (delete if not use)
 
 /**
  * Tanuki Framework — Route Definitions
@@ -19,26 +19,26 @@ require_once __DIR__ . '/admin/AdminController.php'; // tanuki_admin (comment to
 return [
 
     // ── tanuki_admin (uncomment to enable) ────
-    // 'GET /admin'                      => 'AdminController@dashboard',
-    // 'GET /admin/{resource}'           => 'AdminController@index',
-    // 'GET /admin/{resource}/create'    => 'AdminController@create',
-    // 'POST /admin/{resource}'          => 'AdminController@store',
-    // 'GET /admin/{resource}/{id}/edit' => 'AdminController@edit',
-    // 'PUT /admin/{resource}/{id}'      => 'AdminController@update',
-    // 'DELETE /admin/{resource}/{id}'   => 'AdminController@destroy',
+    'GET /admin'                      => 'AdminController@dashboard',
+    'GET /admin/{resource}'           => 'AdminController@index',
+    'GET /admin/{resource}/create'    => 'AdminController@create',
+    'POST /admin/{resource}'          => 'AdminController@store',
+    'GET /admin/{resource}/{id}/edit' => 'AdminController@edit',
+    'PUT /admin/{resource}/{id}'      => 'AdminController@update',
+    'DELETE /admin/{resource}/{id}'   => 'AdminController@destroy',
 
     // ── tanuki_login (uncomment to enable) ──────────────────────────────────
-    // 'GET /login'                   => 'AuthController@showLogin',
-    // 'POST /login'                  => 'AuthController@login',
-    // 'POST /logout'                 => 'AuthController@logout',
-    // 'GET /register'                => 'AuthController@showRegister',
-    // 'POST /register'               => 'AuthController@register',
-    // 'GET /forgot-password'         => 'AuthController@showForgot',
-    // 'POST /forgot-password'        => 'AuthController@sendResetLink',
-    // 'GET /reset-password/{token}'  => 'AuthController@showReset',
-    // 'POST /reset-password/{token}' => 'AuthController@resetPassword',
-    // 'GET /profile' => 'ProfileController@edit',
-    // 'POST /profile' => 'ProfileController@update',
+    'GET /login'                   => 'AuthController@showLogin',
+    'POST /login'                  => 'AuthController@login',
+    'POST /logout'                 => 'AuthController@logout',
+    'GET /register'                => 'AuthController@showRegister',
+    'POST /register'               => 'AuthController@register',
+    'GET /forgot-password'         => 'AuthController@showForgot',
+    'POST /forgot-password'        => 'AuthController@sendResetLink',
+    'GET /reset-password/{token}'  => 'AuthController@showReset',
+    'POST /reset-password/{token}' => 'AuthController@resetPassword',
+    'GET /profile' => 'ProfileController@edit',
+    'POST /profile' => 'ProfileController@update',
     
     // ── Main pages ─────────────────────────────────────────────────────────
     'GET /'      => 'HomeController@index',

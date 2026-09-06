@@ -1,7 +1,12 @@
 <?php
 
+require_once __DIR__ . '/../core/Controller.php';
+require_once __DIR__ .'/../core/HasOwnViews.php';
+
 class AuthController extends Controller
 {
+    use HasOwnViews;
+
     private const TOKEN_TTL_MINUTES = 60;
 
     // ── GET /login ───────────────────────────────────────────────────────────
