@@ -29,6 +29,12 @@
         "password_reset_success": "Tu contraseña ha sido restablecida. Ya puedes iniciar sesión.",
         "logout_button": "Cerrar sesión"
     },
+    "admin": {
+        "title": "Admin",
+        "back_to_site": "Volver al sitio",
+        "dashboard_title": "Panel de Administración",
+        "dashboard_subtitle": "Gestiona tus datos."
+    },
     "profile": {
         "edit_link": "Editar perfil",
         "edit_title": "Editar perfil",

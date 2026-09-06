@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . "/../core/Model.php";
+require_once __DIR__ . "/UserModel.php";
+
 class PasswordResetModel extends Model
 {
     protected static string $table = 'password_resets';

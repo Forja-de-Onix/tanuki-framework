@@ -30,6 +30,13 @@ body {
     flex-direction: column;
 }
 
+body:has(.view-container) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
 /* ── Header ─────────────────────────────────── */
 header {
     background: var(--surface);
@@ -560,4 +567,164 @@ p {
 }
 .lang-flag.active {
     opacity: 1;
+}
+
+
+/* ── Admin panel (tanuki_admin) ───────────────────── */
+
+.admin-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.admin-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.admin-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+}
+
+.admin-nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.6rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+}
+
+.admin-nav a:hover {
+    background: var(--border);
+    color: var(--text);
+}
+
+.admin-nav a.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.admin-back {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.admin-back:hover {
+    color: var(--text);
+}
+
+.admin-main {
+    flex: 1;
+    padding: 2.5rem 3rem;
+    max-width: 1100px;
+}
+
+.admin-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.admin-header-row h1 {
+    font-size: 1.6rem;
+    margin: 0;
+}
+
+.admin-subtitle {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+}
+
+/* ── Tarjetas de recursos (dashboard) ─────────────── */
+
+.admin-resource-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.admin-resource-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.admin-resource-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+/* ── Tabla de listados (index) ────────────────────── */
+
+.admin-table-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 0.85rem 1.25rem;
+    text-align: left;
+    font-size: 0.92rem;
+}
+
+.admin-table th {
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-table tbody tr {
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-actions {
+    display: flex;
+    gap: 0.5rem;
 }

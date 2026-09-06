@@ -1,17 +1,12 @@
 <?php
 
-/**
- * AdminController — Generic CRUD driven by admin/admin.php
- *
- * Part of the tanuki_admin extension. Fully self-contained inside
- * the admin/ folder — delete this folder, remove its require and
- * routes from routes.php, and the rest of the app is unaffected.
- *
- * Requires tanuki_login (auth_require(), auth_user()) and an
- * `is_admin` column on the users table.
- */
+require_once __DIR__ . '/../core/Controller.php';
+require_once __DIR__ . '/../core/HasOwnViews.php';
+
 class AdminController extends Controller
 {
+    use HasOwnViews;
+
     private array $registry;
 
     public function __construct()
@@ -21,7 +16,6 @@ class AdminController extends Controller
         $this->guard();
     }
 
-    /** Restricts the whole panel to authenticated admins. */
     private function guard(): void
     {
         auth_require();
@@ -32,7 +26,6 @@ class AdminController extends Controller
         }
     }
 
-    /** Finds a resource definition by its slug, or 404s. */
     private function resource(string $slug): array
     {
         if (!isset($this->registry[$slug])) {
@@ -45,11 +38,12 @@ class AdminController extends Controller
 
     public function dashboard(): void
     {
-        $this->render('dashboard', [
+        $this->view('admin/dashboard', [
             'title'     => 'Admin',
-            'resources' => $this->registry,
+            'registry'  => $this->registry,
         ]);
     }
+
 
     // ── GET /admin/{resource} ────────────────────────────────────────────────
 
@@ -60,11 +54,12 @@ class AdminController extends Controller
         $orderBy  = $res['order_by']  ?? 'id';
         $orderDir = $res['order_dir'] ?? 'ASC';
 
-        $this->render('index', [
+        $this->view('admin/index', [
             'title'    => $res['label'] . ' — Admin',
             'slug'     => $slug,
             'resource' => $res,
             'records'  => $model::all($orderBy, $orderDir),
+            'registry' => $this->registry,
         ]);
     }
 
@@ -74,11 +69,12 @@ class AdminController extends Controller
     {
         $res = $this->resource($slug);
 
-        $this->render('form', [
+        $this->view('admin/form', [
             'title'    => 'New ' . $res['label'] . ' — Admin',
             'slug'     => $slug,
             'resource' => $res,
             'record'   => null,
+            'registry' => $this->registry,
         ]);
     }
 
@@ -92,8 +88,6 @@ class AdminController extends Controller
             $this->redirect("/admin/$slug/create");
         }
 
-        // A password field can't be left blank when creating a brand new
-        // record — "keep current password" only makes sense on edit.
         foreach ($res['form_fields'] as $field => $meta) {
             if ($meta['type'] === 'password' && trim((string) $this->request->post($field, '')) === '') {
                 $this->flash('error', 'Password is required when creating a new record.');
@@ -116,14 +110,15 @@ class AdminController extends Controller
             $this->abort404();
         }
 
-        $this->render('form', [
+        $this->view('admin/form', [
             'title'    => 'Edit ' . $res['label'] . ' — Admin',
             'slug'     => $slug,
             'resource' => $res,
             'record'   => $record,
+            'registry' => $this->registry,
         ]);
     }
-
+    
     // ── PUT /admin/{resource}/{id} ────────────────────────────────────────────
 
     public function update(string $slug, string $id): void
@@ -167,7 +162,7 @@ class AdminController extends Controller
             if ($meta['type'] === 'password') {
                 $value = trim((string) $this->request->post($field, ''));
                 if ($value === '') {
-                    continue; // blank = keep the existing password unchanged
+                    continue;
                 }
                 $data[$field] = password_hash($value, PASSWORD_DEFAULT);
                 continue;
@@ -177,18 +172,5 @@ class AdminController extends Controller
         }
 
         return $data;
-    }
-
-    /** Renders an admin template wrapped in the admin layout. Self-contained — doesn't use the global view(). */
-    private function render(string $template, array $data = []): void
-    {
-        $data['registry'] = $this->registry;
-        extract($data);
-
-        ob_start();
-        require __DIR__ . "/templates/$template.php";
-        $content = ob_get_clean();
-
-        require __DIR__ . '/templates/layout.php';
     }
 }

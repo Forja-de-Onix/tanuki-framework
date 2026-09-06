@@ -9,12 +9,20 @@
  *  - Global error and exception handling
  *  - Router dispatch with parameter support and method override
  */
+
 require_once __DIR__ . '/../utils.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/redis.php';
 require_once __DIR__ . '/../config/mongo.php';
-require_once __DIR__ . '/../config/mail.php';
-require_once __DIR__ . '/../auth.php';
+
+// ── tanuki_login (uncomment every line below to enable) ──────────────────
+require_once __DIR__ . '/../login/auth.php';
+require_once __DIR__ . '/../login/mail.php';
+require_once __DIR__ . '/../login/UserModel.php';
+require_once __DIR__ . '/../login/PasswordResetModel.php';
+require_once __DIR__ . '/../login/AuthController.php';
+require_once __DIR__ . '/../login/ProfileController.php';
+
 
 class App
 {

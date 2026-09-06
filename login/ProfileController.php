@@ -1,7 +1,10 @@
 <?php
 
+require_once __DIR__ .'/../core/HasOwnViews.php';
+
 class ProfileController extends Controller
 {
+    use HasOwnViews;
     // ── GET /profile ─────────────────────────────────────────────────────────
 
     public function edit(): void
