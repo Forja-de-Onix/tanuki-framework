@@ -61,4 +61,6 @@ Full documentation lives in the [wiki](../../wiki):
 
 ## License
 
-<!-- Add your license here -->
+This project is licensed under the **GNU General Public License v3.0 (GPLv3)** — see the [LICENSE](LICENSE) file for the full text.
+
+In short: you're free to use, modify, and redistribute this project, including commercially, as long as any distributed derivative work is also licensed under GPLv3 and its source code remains available. This is a copyleft license — it doesn't restrict how you use Tanuki to build your own projects, but if you modify and redistribute Tanuki itself, those modifications must stay open under the same terms.

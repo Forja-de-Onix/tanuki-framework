@@ -2,7 +2,7 @@
     "name": "forja-de-onix/tanuki-framework",
     "description": "A lightweight PHP MVC framework for developers who like vanilla PHP.",
     "type": "project",
-    "license": "MIT",
+    "license": "GPL-3.0-or-later",
     "keywords": ["php", "framework", "mvc", "lightweight", "vanilla-php"],
     "authors": [
         { "name": "Tu Nombre" }
